@@ -2,26 +2,43 @@ package org.dennybritz.sampler
 
 import scala.collection.mutable.{HashMap => MHashMap}
 import scala.collection.immutable.HashMap
+import scala.concurrent._
+import scala.concurrent.duration._
 
 class Learner(context: GraphContext) extends Logging {
 
   // Make the context implicit
   implicit val _context = context
+    import ExecutionContext.Implicits.global
+
+
+  def evaluateFactor(factorId: Int) : Double = {
+    val factor = context.factorsMap(factorId)
+    val factorVariables = factor.variables map (fv => context.getVariableValue(fv.id))
+    factor.function.evaluate(factorVariables)
+  }
 
   // Computes the marginal probability that each factor is true
   // TODO: How to generalize this?
   def sampleFactors(variables: Set[Int], factors: Set[Int], 
     numSamples: Int) : Map[Int, Double] = {
-    (0 until numSamples).foldLeft(Map.empty[Int, Double]) { case(values, iteration) =>
+    
+    // Partition size for parallelizing factor evaluation
+    val partitionSize = Math.max((factors.size / SamplingUtils.parallelism).toInt, 1)
+   
+    val defaultMap = Map.empty[Int, Double].withDefaultValue(0.0)
+    (0 until numSamples).foldLeft(defaultMap) { case(values, iteration) =>
       // Sample all variables and update their values in the context
       SamplingUtils.sampleVariables(variables)
-      // Evaluate each factor and generate a Map from FactorID -> Value
-      factors.map { factorId =>
-        val factor = context.factorsMap(factorId)
-        val factorVariables = factor.variables map (fv => context.getVariableValue(fv.id))
-        val factorValue = factor.function.evaluate(factorVariables)
-        (factorId, values.get(factorId).getOrElse(0.0) + factorValue)
-      }.toMap
+      
+      // Evaluate all factors
+      val tasks = factors.iterator.grouped(partitionSize).map { factors =>
+        Future { 
+          factors.map { factorId => (factorId, evaluateFactor(factorId) + values(factorId)) }.toMap
+        }.mapTo[Map[Int, Double]]
+      }
+      val mergedResults = Future.sequence(tasks)
+      Await.result(mergedResults, 1337.hours).reduce(_ ++ _)
     }.mapValues(_ / numSamples) 
   }
 
@@ -61,8 +78,8 @@ class Learner(context: GraphContext) extends Logging {
       // Apply the weight changes
       val weightChanges = queryWeightIds.map { weightId =>
         val factors = weightFactorMap(weightId)
-        val currentWeight = context.weightValues(weightId)
-        val weightChange = factors map (f => (conditionedEx(f) - unconditionedEx(f))) sum
+        val currentWeight = context.getWeightValue(weightId)
+        val weightChange = factors.foldLeft(0.0) { case(x, f) => x + (conditionedEx(f) - unconditionedEx(f)) }
         val newWeight = currentWeight + (weightChange * iterLearningRate) * (1.0/(1.0+regularizationConstant*iterLearningRate))
         context.updateWeightValue(weightId, newWeight)
         weightChange

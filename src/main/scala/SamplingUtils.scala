@@ -39,15 +39,12 @@ object SamplingUtils extends Logging {
   /* Samples multiple variables and updates the variable values in the context */
   def sampleVariables(variables: Set[Int])(implicit context: GraphContext) : Unit = {
     val groupSize = Math.max((variables.size / SamplingUtils.parallelism).toInt, 1)
-    val partitionedVariables = variables.grouped(groupSize)
+    val partitionedVariables = variables.iterator.grouped(groupSize)
     val tasks = partitionedVariables.map { variables =>
       future { Random.shuffle(variables).foreach(sampleVariable) }
     }
     val mergedResults = Future.sequence(tasks)
     Await.result(mergedResults, 1337.hours)
   }
-
-  
-  
 
 }
