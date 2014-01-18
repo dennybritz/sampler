@@ -3,7 +3,8 @@ package org.dennybritz.sampler
 import java.io.File
 
 case class Config(weightsFile: File, factorsFile: File, variablesFile: File, outputFile: File,
-  numSamplesInference: Int, learningNumIterations: Int, learningNumSamples: Int, learningRate: Double)
+  numSamplesInference: Int, learningNumIterations: Int, learningNumSamples: Int, learningRate: Double,
+  diminishRate: Double)
 
 object Runner extends App with Logging {
 
@@ -22,11 +23,13 @@ object Runner extends App with Logging {
       c.copy(learningNumIterations = x) } text("number of iterations during weight learning")
     opt[Int]('s', "learningNumSamples") valueName("<learningNumSamples>") action { (x, c) =>
       c.copy(learningNumSamples = x) } text("number of samples per iteration during weight learning")
-    opt[Double]("learningRate") valueName("<learningRate>") action { (x, c) =>
+    opt[Double]("alpha") valueName("<learningRate>") action { (x, c) =>
       c.copy(learningRate = x) } text("the learning rate for gradient descent (default: 0.1)")
+    opt[Double]("diminish") valueName("<learningRate>") action { (x, c) =>
+      c.copy(diminishRate = x) } text("the diminish rate for learning (default: 0.95)")
   }
 
-  val config = parser.parse(args, Config(null, null, null, null, 100, 100, 1, 0.1)).getOrElse{
+  val config = parser.parse(args, Config(null, null, null, null, 100, 100, 1, 0.1, 0.95)).getOrElse{
     System.exit(1)
     throw new RuntimeException("")
   }
@@ -43,7 +46,7 @@ object Runner extends App with Logging {
   val learner = new Learner(graphContext)
   val weightsResult = learner.learnWeights(
     config.learningNumIterations, config.learningNumSamples,
-    config.learningRate, 0.01, 0.96)
+    config.learningRate, 0.01, config.diminishRate)
   FileWriter.dumpWeights(weightsResult, config.outputFile.getCanonicalPath + ".weights")
   
   log.debug("Performing inference...")
