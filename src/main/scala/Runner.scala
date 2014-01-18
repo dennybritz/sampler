@@ -2,7 +2,8 @@ package org.dennybritz.sampler
 
 import java.io.File
 
-case class Config(weightsFile: File, factorsFile: File, variablesFile: File)
+case class Config(weightsFile: File, factorsFile: File, variablesFile: File, outputFile: File,
+  numSamplesInference: Int, learningNumIterations: Int, learningNumSamples: Int, learningRate: Double)
 
 object Runner extends App with Logging {
 
@@ -13,19 +14,44 @@ object Runner extends App with Logging {
       c.copy(variablesFile = x) } text("variables File")
     opt[File]('f', "factors") required() valueName("<factorsFile>") action { (x, c) =>
       c.copy(factorsFile = x) } text("factors File")
+    opt[File]('o', "outputFile") required() valueName("<outputFile>") action { (x, c) =>
+      c.copy(outputFile = x) } text("output file")
+    opt[Int]('i', "numSamplesInference") required() valueName("<numSamplesInference>") action { (x, c) =>
+      c.copy(numSamplesInference = x) } text("number of samples for inference")
+    opt[Int]('l', "learningNumIterations") valueName("<learningNumIterations>") action { (x, c) =>
+      c.copy(learningNumIterations = x) } text("number of iterations during weight learning")
+    opt[Int]('s', "learningNumSamples") valueName("<learningNumSamples>") action { (x, c) =>
+      c.copy(learningNumSamples = x) } text("number of samples per iteration during weight learning")
+    opt[Double]("learningRate") valueName("<learningRate>") action { (x, c) =>
+      c.copy(learningRate = x) } text("the learning rate for gradient descent (default: 0.1)")
   }
 
-  val config = parser.parse(args, Config(null, null, null)).getOrElse{
+  val config = parser.parse(args, Config(null, null, null, null, 100, 100, 1, 0.1)).getOrElse{
     System.exit(1)
     throw new RuntimeException("")
   }
   
+  log.debug("Parsing input...")
   val parserInput = DeepDiveInput(config.factorsFile.getCanonicalPath, config.variablesFile.getCanonicalPath,
     config.weightsFile.getCanonicalPath)
-  
   val dataInput = DeepDiveInputParser.parse(parserInput)
+  
+  log.debug("Creating factor graph...")
   val graphContext = GraphContext.create(dataInput)
+  
+  log.debug("Starting learning phrase...")
   val learner = new Learner(graphContext)
-  learner.learnWeights(100, 1, 0.1, 0.01, 0.96)
+  val weightsResult = learner.learnWeights(
+    config.learningNumIterations, config.learningNumSamples,
+    config.learningRate, 0.01, 0.96)
+  FileWriter.dumpWeights(weightsResult, config.outputFile.getCanonicalPath + ".weights")
+  
+  log.debug("Performing inference...")
+  val sampler = new Sampler(graphContext)
+  val inferenceResult = sampler.calculateMarginals(config.numSamplesInference, 
+    graphContext.variablesMap.values.toSeq)
+  FileWriter.dumpVariables(inferenceResult.variables, config.outputFile.getCanonicalPath)
+
+
 
 }

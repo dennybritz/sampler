@@ -20,9 +20,10 @@ class SamplerSpec extends FunSpec {
       val context = GraphContext.create(dataInput)
       val sampler = new Sampler(context)
       val result = sampler.calculateMarginals(100, dataInput.variablesMap.values.toList)
-      assert(result.size === 80)
+      assert(result.variables.size === 80)
       for (variable <- query) {
-        assert(result(variable.id) === VariableInferenceResult(1.0, 0.0, 1.0))
+        assert(result.variables.find(_.id == variable.id).get === 
+          VariableInferenceResult(variable.id, 1.0, 0.0, 1.0))
       }
     }
 

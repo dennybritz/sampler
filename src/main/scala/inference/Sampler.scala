@@ -14,7 +14,7 @@ class Sampler(context: GraphContext) extends Logging {
   // Squared sample sums to calculate running standard deviation
   val sampleSums2 = HashMap[Int, Double]()
 
-  def calculateMarginals(numSamples: Int, variables: Seq[Variable]) : Map[Int, VariableInferenceResult] = {
+  def calculateMarginals(numSamples: Int, variables: Seq[Variable]) : InferenceResult = {
     
     log.debug(s"calculating marginals for num_vars=${variables.size}")
 
@@ -35,14 +35,14 @@ class Sampler(context: GraphContext) extends Logging {
       }
     }
 
-    // Return the inferenceResult
-    nonEvidenceVariables.map { variableId =>
-      val result = VariableInferenceResult(
+    // Generate the inference results
+    val variableInferenceResults = nonEvidenceVariables.map { variableId =>
+      VariableInferenceResult(variableId,
         sampleSums(variableId) / numSamples.toDouble,
         math.sqrt(numSamples * sampleSums2(variableId) - math.pow(sampleSums(variableId), 2)) / numSamples,
         context.getVariableValue(variableId))
-      (variableId, result)
-    }.toMap
+    }.toList
+    InferenceResult(variableInferenceResults)
   }
 
 }

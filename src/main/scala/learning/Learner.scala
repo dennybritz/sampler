@@ -46,8 +46,6 @@ class Learner(context: GraphContext) extends Logging {
   def learnWeights(numIterations: Int, numSamples: Int, learningRate: Double, regularizationConstant: Double,
     diminishRate: Double) = {
 
-    log.debug(s"learning weights")
-
     val queryVariables = context.variablesMap.values.filter(_.isQuery).map(_.id).toSet
     val evidenceVariables = context.variablesMap.values.filter(_.isEvidence).map(_.id).toSet
     val evidenceValues = context.variablesMap.filterKeys(evidenceVariables.contains).mapValues(_.value)
@@ -59,6 +57,11 @@ class Learner(context: GraphContext) extends Logging {
     val weightFactorMap = context.factorsMap.filterKeys(evidenceFactorIds).values.groupBy(_.weightId)
       .mapValues(_.map(_.id))
 
+    log.debug(s"num_iterations=${numIterations}")
+    log.debug(s"num_samples_per_iteration=${numSamples}")
+    log.debug(s"learning_rate=${learningRate}")
+    log.debug(s"diminish_rate=${diminishRate}")
+    log.debug(s"regularization_constant=${regularizationConstant}")
     log.debug(s"num_factors=${context.factorsMap.size} num_query_factors=${queryFactors.size}")
     log.debug(s"num_weights=${context.weightsMap.size} num_query_weights=${queryWeightIds.size}")
     log.debug(s"num_query_variables=${queryVariables.size} num_evidence_variables=${evidenceVariables.size}")

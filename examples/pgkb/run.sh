@@ -6,4 +6,5 @@ BASEDIR=`pwd`
 
 export SBT_OPTS="-agentpath:$YOURKIT_AGENT_PATH -Xmx4g"
 
-sbt "run --variables $BASEDIR/examples/pgkb/variables.txt --weights $BASEDIR/examples/pgkb/weights.txt --factors $BASEDIR/examples/pgkb/factors.txt"
+sbt "run --variables $BASEDIR/examples/pgkb/variables.txt --weights $BASEDIR/examples/pgkb/weights.txt \
+  --factors $BASEDIR/examples/pgkb/factors.txt -o $BASEDIR/target/output -i 100"
