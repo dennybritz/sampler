@@ -25,18 +25,18 @@ class SamplingUtilsSpec extends FunSpec {
 
   describe("Sampling a single variable") {
     it("should work") {
-      SamplingUtils.sampleVariable(sampleDataInput.variablesMap(0))
-      assert(graphContext.variableValues.get(0) == 1.0)
-      SamplingUtils.sampleVariable(sampleDataInput.variablesMap(1))
-      assert(graphContext.variableValues.get(1) == 0.0)
+      SamplingUtils.sampleVariable(0)
+      assert(graphContext.getVariableValue(0) == 1.0)
+      SamplingUtils.sampleVariable(1)
+      assert(graphContext.getVariableValue(1) == 0.0)
     }
   }
 
   describe("Sampling multiple variables") {
     it("should work") {
-      SamplingUtils.sampleVariables(Set(sampleDataInput.variablesMap(0), sampleDataInput.variablesMap(1)))
-      assert(graphContext.variableValues.get(0) == 1.0)
-      assert(graphContext.variableValues.get(1) == 0.0)
+      SamplingUtils.sampleVariables(Set(0,1))
+      assert(graphContext.getVariableValue(0) == 1.0)
+      assert(graphContext.getVariableValue(1) == 0.0)
     }
   }
 

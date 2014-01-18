@@ -13,15 +13,15 @@ object SamplingUtils extends Logging {
   def parallelism = _parallelism
 
   /* Samples a variable and updates its value in the context */
-  def sampleVariable(variable: Variable)(implicit context: GraphContext) : Unit  = {
+  def sampleVariable(variableId: Int)(implicit context: GraphContext) : Unit  = {
     // All factors that connect to the variable
-    val variableFactors = context.variableFactorMap(variable.id) map (context.factorsMap.apply)
+    val variableFactors = context.variableFactorMap(variableId) map (context.factorsMap.apply)
 
     // TODO: Be domain-independent
     val (positiveValues, negativeValues) = variableFactors.map { factor =>
-      val factorWeightValue = context.weightValues(factor.weightId)
-      val variableIndex = factor.variables.map(_.id).indexOf(variable.id)
-      val variableValues = factor.variables.map(_.id).map(context.variableValues.get)
+      val factorWeightValue = context.getWeightValue(factor.weightId)
+      val variableIndex = factor.variables.map(_.id).indexOf(variableId)
+      val variableValues = factor.variables.map(_.id).map(context.getVariableValue)
       val positiveCase = variableValues.updated(variableIndex, 1.0)
       val negativeCase = variableValues.updated(variableIndex, 0.0)
       (factor.function.evaluate(positiveCase) * factorWeightValue, 
@@ -33,15 +33,15 @@ object SamplingUtils extends Logging {
 
     // TODO: ?
     val newValue = if ((Random.nextDouble * (1.0 + math.exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
-    context.updateVariableValue(variable.id, newValue)
+    context.updateVariableValue(variableId, newValue)
   }
 
-  /* Samples multiple variables and returns the sampled values */
-  def sampleVariables(variables: Set[Variable])(implicit context: GraphContext) : Unit = {
+  /* Samples multiple variables and updates the variable values in the context */
+  def sampleVariables(variables: Set[Int])(implicit context: GraphContext) : Unit = {
     val groupSize = Math.max((variables.size / SamplingUtils.parallelism).toInt, 1)
-    val partitionedVariables = Random.shuffle(variables).grouped(groupSize)
+    val partitionedVariables = variables.grouped(groupSize)
     val tasks = partitionedVariables.map { variables =>
-      future { variables.foreach(v => sampleVariable(v)) }
+      future { Random.shuffle(variables).foreach(sampleVariable) }
     }
     val mergedResults = Future.sequence(tasks)
     Await.result(mergedResults, 1337.hours)
