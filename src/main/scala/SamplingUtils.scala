@@ -12,8 +12,8 @@ object SamplingUtils extends Logging {
 
   def parallelism = _parallelism
 
-  /* Samples a variable and returns its value */
-  def sampleVariable(variable: Variable)(implicit context: GraphContext) : Double = {
+  /* Samples a variable and updates its value in the context */
+  def sampleVariable(variable: Variable)(implicit context: GraphContext) : Unit  = {
     // All factors that connect to the variable
     val variableFactors = context.variableFactorMap(variable.id) map (context.factorsMap.apply)
 
@@ -21,7 +21,7 @@ object SamplingUtils extends Logging {
     val (positiveValues, negativeValues) = variableFactors.map { factor =>
       val factorWeightValue = context.weightValues(factor.weightId)
       val variableIndex = factor.variables.map(_.id).indexOf(variable.id)
-      val variableValues = factor.variables.map(_.id).map(context.variableValues.apply)
+      val variableValues = factor.variables.map(_.id).map(context.variableValues.get)
       val positiveCase = variableValues.updated(variableIndex, 1.0)
       val negativeCase = variableValues.updated(variableIndex, 0.0)
       (factor.function.evaluate(positiveCase) * factorWeightValue, 
@@ -32,18 +32,19 @@ object SamplingUtils extends Logging {
     val negativeSum = negativeValues.sum
 
     // TODO: ?
-    if ((Random.nextDouble * (1.0 + math.exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
+    val newValue = if ((Random.nextDouble * (1.0 + math.exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
+    context.updateVariableValue(variable.id, newValue)
   }
 
   /* Samples multiple variables and returns the sampled values */
-  def sampleVariables(variables: Iterable[Variable])(implicit context: GraphContext) : Map[Int, Double] = {
+  def sampleVariables(variables: Set[Variable])(implicit context: GraphContext) : Unit = {
     val groupSize = Math.max((variables.size / SamplingUtils.parallelism).toInt, 1)
     val partitionedVariables = Random.shuffle(variables).grouped(groupSize)
     val tasks = partitionedVariables.map { variables =>
-      future { variables.map( v => (v.id, sampleVariable(v))).toMap }.mapTo[Map[Int,Double]]    
+      future { variables.foreach(v => sampleVariable(v)) }
     }
     val mergedResults = Future.sequence(tasks)
-    Await.result(mergedResults, 1337.hours).foldLeft(Map.empty[Int,Double])(_ ++ _)
+    Await.result(mergedResults, 1337.hours)
   }
 
   

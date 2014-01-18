@@ -10,15 +10,14 @@ class Learner(context: GraphContext) extends Logging {
 
   // Computes the marginal probability that each factor is true
   // TODO: How to generalize this?
-  def sampleFactors(variables: Iterable[Variable], factors: Iterable[Factor], 
+  def sampleFactors(variables: Set[Variable], factors: Set[Factor], 
     numSamples: Int) : Map[Int, Double] = {
     (0 until numSamples).foldLeft(Map.empty[Int, Double]) { case(values, iteration) =>
       // Sample all variables and update their values in the context
-      val samplingResults = SamplingUtils.sampleVariables(variables)
-      context.updateVariableValues(samplingResults)
+      SamplingUtils.sampleVariables(variables)
       // Evaluate each factor and generate a Map from FactorID -> Value
       factors.map { factor =>
-        val factorVariables = factor.variables map (fv => context.variableValues(fv.id))
+        val factorVariables = factor.variables map (fv => context.variableValues.get(fv.id))
         val factorValue = factor.function.evaluate(factorVariables)
         (factor.id, values.get(factor.id).getOrElse(0.0) + factorValue)
       }.toMap
@@ -36,7 +35,7 @@ class Learner(context: GraphContext) extends Logging {
     val evidenceFactorIds = evidenceVariables.map(_.id).flatMap(context.variableFactorMap(_)).toSet
     val queryFactors = context.factorsMap.filterKeys(evidenceFactorIds).values.toSet
     val queryWeightIds = queryFactors.map(_.weightId).toSet
-    val queryWeights = context.weightsMap.filterKeys(queryWeightIds)
+    val queryWeights = context.weightsMap.filterKeys(queryWeightIds).toSet
 
     log.debug(s"num_factors=${context.factorsMap.size} num_query_factors=${queryFactors.size}")
     log.debug(s"num_weights=${context.weightsMap.size} num_query_weights=${queryWeights.size}")

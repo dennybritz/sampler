@@ -1,11 +1,13 @@
 package org.dennybritz.sampler
 
+import scala.collection.JavaConversions._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.{HashMap => MHashMap, MultiMap, Set => MSet}
+import java.util.concurrent.ConcurrentHashMap
 
 
 class GraphContext(objects: DataInput, _variableFactorMap: Map[Int, Set[Int]], 
-  _variableValues: MHashMap[Int, Double], _weightValues: MHashMap[Int, Double]) {
+  _variableValues: ConcurrentHashMap[Int, Double], _weightValues: MHashMap[Int, Double]) {
 
   def factorsMap = objects.factorsMap
   def variablesMap = objects.variablesMap
@@ -20,6 +22,10 @@ class GraphContext(objects: DataInput, _variableFactorMap: Map[Int, Set[Int]],
 
   def updateWeightValues(newValues: Map[Int, Double]) = {
     newValues foreach { case(key, value) => weightValues.update(key, value) }
+  }
+
+  def updateVariableValue(variableId: Int, newValue: Double) {
+    variableValues.update(variableId, newValue)
   }
 
 }
@@ -40,7 +46,7 @@ object GraphContext {
     }
 
     val variableFactorMap = tmpVariableFactorMap.toMap.mapValues(_.toSet)
-    val variableValues = MHashMap[Int, Double](input.variablesMap.mapValues(_.value).toSeq: _*)
+    val variableValues = new ConcurrentHashMap[Int, Double](input.variablesMap.mapValues(_.value))
     val weightValues = MHashMap[Int, Double](input.weightsMap.mapValues(_.value).toSeq: _*)
 
     new GraphContext(input, variableFactorMap, variableValues, weightValues)

@@ -18,7 +18,7 @@ class Sampler(context: GraphContext) extends Logging {
     
     log.debug(s"calculating marginals for num_vars=${variables.size}")
 
-    val nonEvidenceVariables = variables.filterNot(_.isEvidence)
+    val nonEvidenceVariables = variables.filterNot(_.isEvidence).toSet
 
     // TODO: Z-test for convergence
 
@@ -26,10 +26,10 @@ class Sampler(context: GraphContext) extends Logging {
     for (i <- 1 to numSamples) {
       log.debug(s"inference_iteration=${i}")
       // Samples all variables that are not evidence
-      val sampleResults = SamplingUtils.sampleVariables(nonEvidenceVariables)
-      context.updateVariableValues(sampleResults)
+      SamplingUtils.sampleVariables(nonEvidenceVariables)
       // Updated the sample sums
-      sampleResults.foreach { case(variableId, sampleResult) =>
+      nonEvidenceVariables.iterator.map(_.id).foreach { variableId =>
+        val sampleResult = context.variableValues.get(variableId)
         sampleSums.put(variableId, sampleSums.get(variableId).getOrElse(0.0) + sampleResult)
         sampleSums2.put(variableId, sampleSums2.get(variableId).getOrElse(0.0) + math.pow(sampleResult, 2))
       }
@@ -40,7 +40,7 @@ class Sampler(context: GraphContext) extends Logging {
       val result = VariableInferenceResult(
         sampleSums(variable.id) / numSamples.toDouble,
         math.sqrt(numSamples * sampleSums2(variable.id) - math.pow(sampleSums(variable.id), 2)) / numSamples,
-        context.variableValues(variable.id))
+        context.variableValues.get(variable.id))
       (variable.id, result)
     }.toMap
   }
