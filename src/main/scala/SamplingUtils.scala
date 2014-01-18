@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 object SamplingUtils extends Logging {
 
   // Use constant parallelism based on the number of cores
-  lazy val _parallelism = (Runtime.getRuntime().availableProcessors() * 2).toInt
+  lazy val _parallelism = Runtime.getRuntime.availableProcessors.toInt
   import ExecutionContext.Implicits.global
 
   def parallelism = _parallelism
