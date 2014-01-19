@@ -48,15 +48,13 @@ class Learner(context: GraphContext) extends Logging {
     diminishRate: Double) : Map[Int, Double] = {
 
     val queryVariables = context.variablesMap.values.filter(_.isQuery).map(_.id).toSet
-    val evidenceVariables = context.variablesMap.values.filter(_.isEvidence).map(_.id).toSet
-    val evidenceValues = context.variablesMap.filterKeys(evidenceVariables.contains).mapValues(_.value)
+    val evidenceVariables = context.variablesMap.keySet -- queryVariables
+    val evidenceValues = evidenceVariables.map(id => (id, context.getVariableValue(id))).toMap
     // We only learn weights for factors that are connected to evidence
-    val evidenceFactorIds = evidenceVariables.flatMap(context.variableFactorMap(_)).toSet
-    val queryFactors = context.factorsMap.filterKeys(evidenceFactorIds).values.map(_.id).toSet
-    val queryWeightIds = context.factorsMap.filterKeys(evidenceFactorIds).values.map(_.weightId).toSet
+    val queryFactors = evidenceVariables.flatMap(context.variableFactorMap(_)).toSet
+    val queryWeightIds = context.factorsMap.filterKeys(queryFactors).values.map(_.weightId).toSet
     // Map from weight -> Factors
-    val weightFactorMap = context.factorsMap.filterKeys(evidenceFactorIds).values.groupBy(_.weightId)
-      .mapValues(_.map(_.id))
+    val weightFactorMap = context.factorsMap.filterKeys(queryFactors).values.groupBy(_.weightId).mapValues(_.map(_.id))
     val weightPartitionSize = Math.max((queryWeightIds.size / SamplingUtils.parallelism).toInt, 1)
 
     log.debug(s"num_iterations=${numIterations}")
