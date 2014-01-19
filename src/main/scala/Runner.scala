@@ -27,6 +27,11 @@ object Runner extends App with Logging {
       c.copy(learningRate = x) } text("the learning rate for gradient descent (default: 0.1)")
     opt[Double]("diminish") valueName("<learningRate>") action { (x, c) =>
       c.copy(diminishRate = x) } text("the diminish rate for learning (default: 0.95)")
+    opt[Int]('t',"threads") valueName("<numThreads>") action { (x, c) =>
+      log.warn("Setting the number of threads is no longer supported. " + 
+        "It's automatically decided by the JVM. Setting ignored.")
+      c
+    } text ("number of threads.")
   }
 
   val config = parser.parse(args, Config(null, null, null, null, 100, 100, 1, 0.1, 0.95)).getOrElse{
