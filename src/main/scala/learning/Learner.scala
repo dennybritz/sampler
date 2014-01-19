@@ -59,6 +59,7 @@ class Learner(context: GraphContext) extends Logging {
 
     log.debug(s"num_iterations=${numIterations}")
     log.debug(s"num_samples_per_iteration=${numSamples}")
+    log.debug(s"parallelism=${SamplingUtils.parallelism}")
     log.debug(s"learning_rate=${learningRate}")
     log.debug(s"diminish_rate=${diminishRate}")
     log.debug(s"regularization_constant=${regularizationConstant}")
