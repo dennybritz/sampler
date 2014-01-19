@@ -11,8 +11,8 @@ class DeepDiveInputParserSpec extends FunSpec {
       val weightsFile = getClass.getResource("/deepdive_weights.txt").getFile
       val result = DeepDiveInputParser.parseWeights(weightsFile)
       assert(result.size == 2)
-      assert(result == List(
-        Weight(1013, 0.0, false), Weight(585, 0.0, false)
+      assert(result == Map(
+        1013 -> Weight(1013, 0.0, false), 585 -> Weight(585, 0.0, false)
       ))
     }
 
@@ -30,11 +30,12 @@ class DeepDiveInputParserSpec extends FunSpec {
     it("should work for valid files") {
       val variableMapFile = getClass.getResource("/deepdive_variables.txt").getFile
       val result = DeepDiveInputParser.parseVariableFactorMap(variableMapFile)
-      assert(result.variables.toSet == 
-        List(BooleanVariable(0, 0.0, false, true), BooleanVariable(1, 1.0, true, false),
-          BooleanVariable(2, 1.0, true, false)).toSet)
-      assert(result.factorMap == Map(
-        0 -> List(FactorVariable(0, true)),
+      assert(result.variables == 
+        Map(0 -> BooleanVariable(0, 0.0, false, true), 
+          1 -> BooleanVariable(1, 1.0, true, false),
+          2 -> BooleanVariable(2, 1.0, true, false)))
+      assert(result.factorMap == 
+        Map(0 -> List(FactorVariable(0, true)),
         1 -> List(FactorVariable(1, true), FactorVariable(2, true))
       ))
     }
@@ -56,9 +57,9 @@ class DeepDiveInputParserSpec extends FunSpec {
         251 -> List(FactorVariable(0, true), FactorVariable(1, true)),
         2026 -> List(FactorVariable(2, true)))
       val result = DeepDiveInputParser.parseFactors(factorsFile, factorVariableMap)
-      assert(result == List(
-        Factor(251, List(FactorVariable(0, true), FactorVariable(1, true)), 187, ImplyFactorFunction),
-        Factor(2026, List(FactorVariable(2, true)), 382, ImplyFactorFunction)
+      assert(result == Map(
+        251 -> Factor(251, List(FactorVariable(0, true), FactorVariable(1, true)), 187, ImplyFactorFunction),
+        2026 -> Factor(2026, List(FactorVariable(2, true)), 382, ImplyFactorFunction)
       ))
     }
 
@@ -67,8 +68,8 @@ class DeepDiveInputParserSpec extends FunSpec {
       val factorVariableMap = Map(
         251 -> List(FactorVariable(0, true), FactorVariable(1, true)))
       val result = DeepDiveInputParser.parseFactors(factorsFile, factorVariableMap)
-      assert(result == List(
-        Factor(251, List(FactorVariable(0, true), FactorVariable(1, true)), 187, ImplyFactorFunction)
+      assert(result == Map(
+        251 -> Factor(251, List(FactorVariable(0, true), FactorVariable(1, true)), 187, ImplyFactorFunction)
       ))
     }
 
