@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
 class GraphContext(
   _factosMap: IntMap[Factor], _variablesMap: IntMap[Variable], _weightsMap: IntMap[Weight],
   _variableFactorMap: IntMap[Set[Int]], 
-  _variableValues: MHashMap[Int, Double], _weightValues: MHashMap[Int, Double]) {
+  _variableValues: ConcurrentHashMap[Int, Double], _weightValues: ConcurrentHashMap[Int, Double]) {
 
   def factorsMap = _factosMap
   def variablesMap = _variablesMap
@@ -53,8 +53,8 @@ object GraphContext {
     }
 
     val variableFactorMap = tmpVariableFactorMap.toMap.mapValues(_.toSet)
-    val variableValues = MHashMap[Int, Double](input.variablesMap.mapValues(_.value).toSeq: _*)
-    val weightValues = MHashMap[Int, Double](input.weightsMap.mapValues(_.value).toSeq: _*)
+    val variableValues = new ConcurrentHashMap[Int, Double](input.variablesMap.mapValues(_.value))
+    val weightValues = new ConcurrentHashMap[Int, Double](input.weightsMap.mapValues(_.value))
 
     new GraphContext(IntMap(input.factorsMap.toSeq: _*), 
       IntMap(input.variablesMap.toSeq: _*), IntMap(input.weightsMap.toSeq: _*),

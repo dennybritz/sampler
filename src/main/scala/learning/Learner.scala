@@ -1,5 +1,6 @@
 package org.dennybritz.sampler
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable.{HashMap => MHashMap}
 import scala.collection.immutable.HashMap
 import scala.concurrent._
@@ -9,7 +10,7 @@ class Learner(context: GraphContext) extends Logging {
 
   // Make the context implicit
   implicit val _context = context
-    import ExecutionContext.Implicits.global
+  import ExecutionContext.Implicits.global
 
 
   def evaluateFactor(factorId: Int) : Double = {
@@ -56,6 +57,7 @@ class Learner(context: GraphContext) extends Logging {
     // Map from weight -> Factors
     val weightFactorMap = context.factorsMap.filterKeys(evidenceFactorIds).values.groupBy(_.weightId)
       .mapValues(_.map(_.id))
+    val weightPartitionSize = Math.max((queryWeightIds.size / SamplingUtils.parallelism).toInt, 1)
 
     log.debug(s"num_iterations=${numIterations}")
     log.debug(s"num_samples_per_iteration=${numSamples}")
@@ -83,15 +85,22 @@ class Learner(context: GraphContext) extends Logging {
       // Compute the expectation for all factors sampling all variables
       val unconditionedEx = sampleFactors(queryVariables ++ evidenceVariables, queryFactors, numSamples)
 
-      // Apply the weight changes
-      val weightChanges = queryWeightIds.map { weightId =>
-        val factors = weightFactorMap(weightId)
-        val currentWeight = context.getWeightValue(weightId)
-        val weightChange = factors.foldLeft(0.0) { case(x, f) => x + (conditionedEx(f) - unconditionedEx(f)) }
-        val newWeight = currentWeight + (weightChange * iterLearningRate) * (1.0/(1.0+regularizationConstant*iterLearningRate))
-        context.updateWeightValue(weightId, newWeight)
-        weightChange
+      // Apply the weight changes in parallel
+
+      val tasks = queryWeightIds.iterator.grouped(weightPartitionSize).map { weightBatch =>
+        Future {
+          weightBatch.map { weightId =>
+            val factors = weightFactorMap(weightId)
+            val currentWeight = context.getWeightValue(weightId)
+            val weightChange = factors.foldLeft(0.0) { case(x, f) => x + (conditionedEx(f) - unconditionedEx(f)) }
+            val newWeight = currentWeight + (weightChange * iterLearningRate) * (1.0/(1.0+regularizationConstant*iterLearningRate))
+            context.updateWeightValue(weightId, newWeight)
+            weightChange
+          }
+        }.mapTo[Seq[Double]]
       }
+      val taskSequence = Future.sequence(tasks)
+      val weightChanges = Await.result(taskSequence, 1337.hours).reduce(_ ++ _)
 
       // Calculate the L2 norm of the weight changes and the maximum gradient
       val gradientNorm = math.sqrt(weightChanges.map(math.pow(_, 2)).sum)
