@@ -52,7 +52,12 @@ class Learner(context: GraphContext) extends Logging {
     val evidenceValues = evidenceVariables.map(id => (id, context.getVariableValue(id))).toMap
     // We only learn weights for factors that are connected to evidence
     val queryFactors = evidenceVariables.flatMap(context.variableFactorMap(_)).toSet
-    val queryWeightIds = context.factorsMap.filterKeys(queryFactors).values.map(_.weightId).toSet
+    val factorWeightIds = context.factorsMap.filterKeys(queryFactors).values.map(_.weightId).toSet
+    val queryWeightIds = for {
+      weightId <- factorWeightIds
+      weight = context.weightsMap(weightId)
+      if !weight.isFixed
+    } yield weight.id
     // Map from weight -> Factors
     val weightFactorMap = context.factorsMap.filterKeys(queryFactors).values.groupBy(_.weightId).mapValues(_.map(_.id))
     val weightPartitionSize = Math.max((queryWeightIds.size / SamplingUtils.parallelism).toInt, 1)

@@ -102,7 +102,6 @@ class LearningSpec extends FunSpec {
         assert(result(weight.id) > 0)
       }
     }
-
   }
 
 }
