@@ -22,8 +22,9 @@ object SamplingUtils extends Logging {
       val factorWeightValue = context.getWeightValue(factor.weightId)
       val variableIndex = factor.variables.map(_.id).indexOf(variableId)
       val variableValues = factor.variables.map(_.id).map(context.getVariableValue)
-      val positiveCase = variableValues.updated(variableIndex, 1.0)
-      val negativeCase = variableValues.updated(variableIndex, 0.0)
+      val (positiveValue, negativeValue) = if (factor.variables(variableIndex).isPositive) (1.0, 0.0) else (0.0, 1.0)
+      val positiveCase = variableValues.updated(variableIndex, positiveValue)
+      val negativeCase = variableValues.updated(variableIndex, negativeValue)
       (factor.function.evaluate(positiveCase) * factorWeightValue, 
         factor.function.evaluate(negativeCase) * factorWeightValue)
     }.unzip
