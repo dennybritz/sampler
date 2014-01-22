@@ -63,7 +63,7 @@ object DeepDiveInputParser extends InputParser[DeepDiveInput] with Logging {
     log.debug("Building factor map...")
     val factorMap = factorTuples.groupBy(_._1).mapValues(_.map(_._2))
 
-    log.debug("Building varuable map...")
+    log.debug("Building variable map...")
     val variableMap = variableTuples.toMap
 
     VariableFactorMap(variableMap, factorMap)

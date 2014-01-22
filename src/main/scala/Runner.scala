@@ -48,7 +48,7 @@ object Runner extends App with Logging {
   log.debug("Creating factor graph...")
   val graphContext = GraphContext.create(dataInput)
   
-  log.debug("Starting learning phrase...")
+  log.debug("Starting learning phase...")
   val learner = new Learner(graphContext)
   val weightsResult = learner.learnWeights(
     config.learningNumIterations, config.learningNumSamples,
