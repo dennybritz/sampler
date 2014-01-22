@@ -59,9 +59,9 @@ class Sampler(context: GraphContext) extends Logging {
     log.debug("Calculating significant statistics...")
     val Tuple2(notConverged95, notConverged90) = nonEvidenceVariables.map { variableId =>
       val meanFirst20 = sampleSumsFirst20(variableId) / iteration20.toDouble
-      val varianceFirst20 = sampleSums2First20(variableId) - (meanFirst20 * meanFirst20)
+      val varianceFirst20 = sampleSums2First20(variableId)/iteration20.toDouble - (meanFirst20 * meanFirst20)
       val meanLast50 = sampleSumsLast50(variableId) / iteration50.toDouble
-      val varianceLast50 = sampleSums2Last50(variableId) - (meanLast50 * meanLast50)
+      val varianceLast50 = sampleSums2Last50(variableId)/iteration20.toDouble - (meanLast50 * meanLast50)
 
       val varianceSum = Math.max(varianceFirst20 + varianceLast50, 0.00001)
       val tScore = (meanFirst20 - meanLast50)/(Math.sqrt(varianceSum))
