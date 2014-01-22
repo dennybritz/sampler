@@ -29,75 +29,49 @@ class SamplerSpec extends FunSpec {
       }
     }
 
-  }
-
-
-  describe("Two variable") {
-
-    val weights = List(Weight(0, 1.0, true), Weight(1, 10.0, true))
-    val evidence = List()
-    var query = List(BooleanVariable(0, 0.0, false, true), BooleanVariable(1, 0.0, false, true))
-    val factors = List( Factor(0, List(FactorVariable(0, true)), 0, ImplyFactorFunction),
-                        Factor(1, List(FactorVariable(1, true), FactorVariable(0, true)), 1, ImplyFactorFunction)
-    )
-    val dataInput = DataInput(
-        weights.map (w => (w.id, w)) toMap,
-        (evidence ++ query) map (v => (v.id, v)) toMap,
-        factors map (f => (f.id, f)) toMap )
-
-    it("should work") {
-      val context = GraphContext.create(dataInput)
+    it("should work with a zero weight") {
+      val input = dataInput.copy(weightsMap=Map(0 -> Weight(0, 0.0, false)))
+      val context = GraphContext.create(input)
       val sampler = new Sampler(context)
-      val result = sampler.calculateMarginals(100, dataInput.variablesMap.values.toList)
-      assert(result.variables.size === 2)
+      val result = sampler.calculateMarginals(1000, dataInput.variablesMap.values.toList)
+      assert(result.variables.size === 80)
       for (variable <- query) {
-        println(result.variables.find(_.id == variable.id).get);
-        //assert(result.variables.find(_.id == variable.id).get === 
-        //  VariableInferenceResult(variable.id, 1.0, 0.0, 1.0))
+        assert(result.variables.find(_.id == variable.id).get.expectation === (0.5 +- 0.05))
       }
     }
 
-
   }
 
 
-  describe("Three variable") {
+  describe("Sampling three connected variables") {
 
-    val weights = List(Weight(0, 9, true), Weight(1, 2, true), Weight(2, 0, true), Weight(3, 0.4, true),  Weight(4, 10.0, true))
-    val evidence = List()
-    var query = List(BooleanVariable(0, 0.0, false, true), BooleanVariable(1, 0.0, false, true), BooleanVariable(3, 0.0, false, true))
-    val factors = List( Factor(0, List(FactorVariable(0, true)), 0, ImplyFactorFunction),
-                        Factor(1, List(FactorVariable(0, true)), 1, ImplyFactorFunction),
-                        Factor(2, List(FactorVariable(1, true)), 2, ImplyFactorFunction),
-                        Factor(3, List(FactorVariable(1, true)), 3, ImplyFactorFunction),
-                        Factor(4, List(FactorVariable(3, true), FactorVariable(0, true)), 4, ImplyFactorFunction),
-                        Factor(5, List(FactorVariable(3, true), FactorVariable(1, true)), 4, ImplyFactorFunction)
-    )
     val dataInput = DataInput(
-        weights.map (w => (w.id, w)) toMap,
-        (evidence ++ query) map (v => (v.id, v)) toMap,
-        factors map (f => (f.id, f)) toMap )
+      Map(
+        0 -> Weight(0, Double.MaxValue, true),
+        1 -> Weight(1, 0.5, true), 
+        2 -> Weight(1, Double.MaxValue, true)),
+      Map(
+        0 -> BooleanVariable(0, 0.0, false, true),
+        1 -> BooleanVariable(1, 0.0, false, true),
+        2 -> BooleanVariable(2, 0.0, false, true)),
+      Map(
+        0 -> Factor(0, List(FactorVariable(0, true)), 0, ImplyFactorFunction),
+        1 -> Factor(1, List(FactorVariable(1, true)), 1, ImplyFactorFunction),
+        2 -> Factor(2, List(FactorVariable(2, true), FactorVariable(0, true)), 2, ImplyFactorFunction),
+        3 -> Factor(3, List(FactorVariable(2, true), FactorVariable(1, true)), 2, ImplyFactorFunction)))
 
     it("should work") {
       val context = GraphContext.create(dataInput)
       val sampler = new Sampler(context)
-      val result = sampler.calculateMarginals(100, dataInput.variablesMap.values.toList)
+      val result = sampler.calculateMarginals(1000, dataInput.variablesMap.values.toList)
       assert(result.variables.size === 3)
-
-
-      println(result.variables.find(_.id == 0).get);
-      println(result.variables.find(_.id == 1).get);
-      println(result.variables.find(_.id == 3).get);
-
-      //for (variable <- query) {
-      //  println(result.variables.find(_.id == variable.id).get);
-      //  //assert(result.variables.find(_.id == variable.id).get === 
-      //  //  VariableInferenceResult(variable.id, 1.0, 0.0, 1.0))
-      //}
+      assert(result.variables(0).expectation === (1.0 +- 0.1))
+      assert(result.variables(2).expectation === (1.0 +- 0.1))
     }
 
 
   }
+
 
 
 
