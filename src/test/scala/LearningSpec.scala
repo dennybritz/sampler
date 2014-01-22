@@ -21,6 +21,22 @@ class LearningSpec extends FunSpec {
     }
   }
 
+  describe("Learning fixed weights") {
+    
+    val dataInput = DataInput(
+      Map(0 -> Weight(0, 0.0, true)),
+      Map(0 -> BooleanVariable(0, 1.0, true, false), 1 -> BooleanVariable(1, 0.0, false, true)),
+      Map(0 -> Factor(0, List(FactorVariable(0, true)), 0, ImplyFactorFunction),
+        1 -> Factor(1, List(FactorVariable(1, true)), 0, ImplyFactorFunction)))
+
+    it("should not be done") {
+      val context = GraphContext.create(dataInput)
+      val learner = new Learner(context)
+      val result = learner.learnWeights(100, 10, 0.1, 0.01, 0.96)
+      assert(result.isEmpty)
+    }
+  }
+
   describe("Learning one negative weight with one evidence value") {
     val dataInput = DataInput(
       Map(0 -> Weight(0, 0.0, false)),
