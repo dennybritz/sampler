@@ -18,7 +18,7 @@ object SamplingUtils extends Logging {
     val variableFactors = context.variableFactorMap(variableId) map (context.factorsMap.apply)
 
     // TODO: Be domain-independent
-    val (positiveValues, negativeValues) = variableFactors.map { factor =>
+    val (positiveValues, negativeValues) = variableFactors.toList.map { factor =>
       val factorWeightValue = context.getWeightValue(factor.weightId)
       val variableIndex = factor.variables.map(_.id).indexOf(variableId)
       val variableValues = factor.variables.map(_.id).map(context.getVariableValue)
