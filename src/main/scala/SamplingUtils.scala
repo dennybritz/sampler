@@ -10,7 +10,7 @@ object SamplingUtils extends Logging {
   lazy val _parallelism = Runtime.getRuntime.availableProcessors.toInt
   import ExecutionContext.Implicits.global
 
-  def parallelism = 1
+  def parallelism = _parallelism
 
   /* Samples a variable and updates its value in the context */
   def sampleVariable(variableId: Int)(implicit context: GraphContext) : Unit  = {
