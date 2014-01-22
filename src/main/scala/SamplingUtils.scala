@@ -10,7 +10,7 @@ object SamplingUtils extends Logging {
   lazy val _parallelism = Runtime.getRuntime.availableProcessors.toInt
   import ExecutionContext.Implicits.global
 
-  def parallelism = _parallelism
+  def parallelism = 1
 
   /* Samples a variable and updates its value in the context */
   def sampleVariable(variableId: Int)(implicit context: GraphContext) : Unit  = {
@@ -18,7 +18,7 @@ object SamplingUtils extends Logging {
     val variableFactors = context.variableFactorMap(variableId) map (context.factorsMap.apply)
 
     // TODO: Be domain-independent
-    val (positiveValues, negativeValues) = variableFactors.map { factor =>
+    val (positiveValues, negativeValues) = variableFactors.toList.map { factor =>
       val factorWeightValue = context.getWeightValue(factor.weightId)
       val variableIndex = factor.variables.map(_.id).indexOf(variableId)
       val variableValues = factor.variables.map(_.id).map(context.getVariableValue)
