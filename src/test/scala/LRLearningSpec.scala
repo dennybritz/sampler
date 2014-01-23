@@ -26,7 +26,7 @@ class LRLearningSpec extends FunSpec {
       val learner = new Learner(context)
       val result = learner.learnWeights(100, 10, 0.1, 0.01, 0.96)
       Console.println(result(0))
-      assert(result(0) === (1.38 +- 0.1))
+      assert(result(0) === (1.38 +- 0.02))
     }
 
   }

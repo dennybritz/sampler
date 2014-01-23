@@ -20,11 +20,13 @@ object SamplingUtils extends Logging {
     // TODO: Be domain-independent
     val (positiveValues, negativeValues) = variableFactors.toList.map { factor =>
       val factorWeightValue = context.getWeightValue(factor.weightId)
-      val variableIndex = factor.variables.map(_.id).indexOf(variableId)
-      val variableValues = factor.variables.map (v => context.getVariableValue(v.id, v.isPositive))
-      val (positiveValue, negativeValue) = if (factor.variables(variableIndex).isPositive) (1.0, 0.0) else (0.0, 1.0)
-      val positiveCase = variableValues.updated(variableIndex, positiveValue)
-      val negativeCase = variableValues.updated(variableIndex, negativeValue)
+      val (positiveCase, negativeCase) = factor.variables.collect {
+        case FactorVariable(`variableId`, true) => (1.0, 0.0)
+        case FactorVariable(`variableId`, false) => (0.0, 1.0)
+        case FactorVariable(someVariableId, isPositive) => 
+          val variableValue = context.getVariableValue(someVariableId, isPositive)
+          (variableValue, variableValue)
+      }.unzip
 
       (factor.function.evaluate(positiveCase) * factorWeightValue, 
         factor.function.evaluate(negativeCase) * factorWeightValue)
