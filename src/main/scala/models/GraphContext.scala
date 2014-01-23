@@ -18,7 +18,10 @@ class GraphContext(
   def variableValues = _variableValues
   def weightValues = _weightValues
 
-  def getVariableValue(id: Int) = _variableValues(id)
+  def getVariableValue(id: Int, isPositive : Boolean = true) = {
+    if (isPositive) _variableValues(id) else 1.0 - _variableValues(id)
+  }
+
   def getWeightValue(id: Int) = _weightValues(id)
 
   def updateVariableValues(newValues: Map[Int, Double]) = {
