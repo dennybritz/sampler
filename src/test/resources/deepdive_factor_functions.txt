@@ -1,0 +1,5 @@
+0	0	ImplyFactorFunction
+1	1	AndFactorFunction
+2	2	OrFactorFunction
+3	3	IsTrueFactorFunction
+4	4	EqualFactorFunction

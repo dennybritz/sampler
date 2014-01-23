@@ -30,6 +30,32 @@ case object OrFactorFunction extends FactorFunction {
   }
 }
 
+case object AndFactorFunction extends FactorFunction {
+  def evaluate(variableValues: List[Double]) = {
+    if (variableValues.isEmpty || variableValues.forall(_ == 1.0)) 1.0 else 0.0
+  }
+}
+
+case object EqualFactorFunction extends FactorFunction {
+  def evaluate(variableValues: List[Double]) = {
+    if (variableValues.size != 2) {
+      throw new RuntimeException("Cannot evaluate equality between more than two variables!")
+    } else {
+      if (variableValues(0) == variableValues(1)) 1.0 else 0.0
+    }
+  }
+}
+
+case object IsTrueFactorFunction extends FactorFunction {
+  def evaluate(variableValues: List[Double]) = {
+    if (variableValues.size != 1) {
+      throw new RuntimeException("Cannot evaluate isTrue for more than one variable!")
+    } else {
+      variableValues(0)
+    }
+  }
+}
+
 case object NotFactorFunction extends FactorFunction {
   def evaluate(variableValues: List[Double]) = {
     math.abs(variableValues(0) - 1.0)

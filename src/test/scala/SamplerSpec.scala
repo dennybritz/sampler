@@ -61,7 +61,7 @@ class SamplerSpec extends FunSpec {
     it("should work") {
       val context = GraphContext.create(dataInput)
       val sampler = new Sampler(context)
-      val result = sampler.calculateMarginals(1000-, dataInput.variablesMap.values.toList)
+      val result = sampler.calculateMarginals(100, dataInput.variablesMap.values.toList)
       assert(result.variables.size === 3)
       assert(result.variables(0).expectation === (1.0 +- 0.1))
       assert(result.variables(2).expectation === (1.0 +- 0.1))

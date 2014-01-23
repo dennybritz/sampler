@@ -80,6 +80,25 @@ class DeepDiveInputParserSpec extends FunSpec {
       }
     }
 
+    it("should parse different factor functions") {
+      val factorsFile = getClass.getResource("/deepdive_factor_functions.txt").getFile
+      val factorVariableMap = Map(
+        0 -> List(FactorVariable(0, true)), 
+        1 -> List(FactorVariable(0, true)), 
+        2 -> List(FactorVariable(0, true)), 
+        3 -> List(FactorVariable(0, true)), 
+        4 -> List(FactorVariable(0, true)))
+      val result = DeepDiveInputParser.parseFactors(factorsFile, factorVariableMap)
+      assert(result == Map(
+        0 -> Factor(0, List(FactorVariable(0, true)), 0, ImplyFactorFunction),
+        1 -> Factor(1, List(FactorVariable(0, true)), 1, AndFactorFunction),
+        2 -> Factor(2, List(FactorVariable(0, true)), 2, OrFactorFunction),
+        3 -> Factor(3, List(FactorVariable(0, true)), 3, IsTrueFactorFunction),
+        4 -> Factor(4, List(FactorVariable(0, true)), 4, EqualFactorFunction)
+      ))
+
+    }
+
   }
 
 }

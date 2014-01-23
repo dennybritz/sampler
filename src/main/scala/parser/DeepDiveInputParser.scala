@@ -72,9 +72,16 @@ object DeepDiveInputParser extends InputParser[DeepDiveInput] with Logging {
   def parseFactors(factorsFile: String, variableMap: Map[Int, List[FactorVariable]]) = {
     log.debug("Parsing factors...")
     Source.fromFile(factorsFile).getLines.map(l => splitRegex.split(l)).zipWithIndex.map {
-      case (Array(factorId, weightId, "ImplyFactorFunction"), _) =>
+      case (Array(factorId, weightId, functionType), _) =>
+        val funcObj = functionType match {
+          case "ImplyFactorFunction" => ImplyFactorFunction
+          case "OrFactorFunction" => OrFactorFunction
+          case "AndFactorFunction" => AndFactorFunction
+          case "EqualFactorFunction" => EqualFactorFunction
+          case "IsTrueFactorFunction" => IsTrueFactorFunction
+        }
         (factorId.toInt, Factor(factorId.toInt, 
-          variableMap.get(factorId.toInt).getOrElse(Nil), weightId.toInt, ImplyFactorFunction))
+          variableMap.get(factorId.toInt).getOrElse(Nil), weightId.toInt, funcObj))
       case (obj, index) =>
         throw new RuntimeException(s"Could not parse factors file at line ${index}: ${obj}")
     }.filterNot(_._2.variables.size == 0).toMap
