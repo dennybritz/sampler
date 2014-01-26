@@ -35,6 +35,17 @@ TODO
 
 Output format:
 
+Two tab-separated files:
+
+[outputFile].txt
+
 ```
-TODO
+[variable_id] [last_sample] [expectation]
 ```
+
+[outputFile].txt.weights
+
+```
+[weight_id] [value]
+```
+
