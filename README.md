@@ -29,9 +29,7 @@ Usage: sampler [options]
 
 Input format:
 
-```
-TODO
-```
+See [Deepdive developer guide](http://deepdive.stanford.edu/doc/developer.html)
 
 Output format:
 
