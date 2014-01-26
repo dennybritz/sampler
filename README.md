@@ -1,6 +1,6 @@
 Gibbs sampler for factor graphs, including weight learning.
 
-Usage:
+### Usage:
 
 ```
 Usage: sampler [options]
@@ -27,11 +27,11 @@ Usage: sampler [options]
         This setting is no longer supported and will be ignored. The number of threads is automatically decided by the JVM.
 ```
 
-Input format:
+### Input format:
 
 See [Deepdive developer guide](http://deepdive.stanford.edu/doc/developer.html)
 
-Output format:
+### Output format:
 
 Two tab-separated files:
 
