@@ -13,9 +13,9 @@ class FactorFunctionSpec extends FunSpec {
     }
 
     it("should evaluate to true for a false body") {
-      assert(ImplyFactorFunction.evaluate(List(1.0, 0.0)) == 1.0)
+      assert(ImplyFactorFunction.evaluate(List(0.0, 1.0)) == 1.0)
       assert(ImplyFactorFunction.evaluate(List(0.0, 0.0)) == 1.0)
-      assert(ImplyFactorFunction.evaluate(List(1.0, 1.0, 0.0)) == 1.0)
+      assert(ImplyFactorFunction.evaluate(List(0.0, 1.0, 1.0)) == 1.0)
       assert(ImplyFactorFunction.evaluate(List(0.0, 0.0, 0.0)) == 1.0)
     } 
 
@@ -25,8 +25,8 @@ class FactorFunctionSpec extends FunSpec {
     }
 
     it("should evaluate to false for a true body and false head") {
-      assert(ImplyFactorFunction.evaluate(List(0.0, 1.0)) == 0.0)
-      assert(ImplyFactorFunction.evaluate(List(0.0, 1.0, 1.0)) == 0.0)
+      assert(ImplyFactorFunction.evaluate(List(1.0, 0.0)) == 0.0)
+      assert(ImplyFactorFunction.evaluate(List(1.0, 1.0, 0.0)) == 0.0)
     }
 
   }
