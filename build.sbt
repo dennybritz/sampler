@@ -10,6 +10,7 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 libraryDependencies ++= List(
   "ch.qos.logback" % "logback-classic" % "1.0.7",
+  "com.google.protobuf" % "protobuf-java" % "2.5.0",
   "com.github.scopt" %% "scopt" % "3.2.0",
   "com.typesafe.akka" %% "akka-actor" % "2.3-M2",
   "com.typesafe.akka" %% "akka-slf4j" % "2.3-M2",

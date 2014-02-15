@@ -2,19 +2,15 @@ package org.dennybritz.sampler
 
 import java.io.File
 
-case class Config(weightsFile: File, factorsFile: File, variablesFile: File, outputFile: File,
+case class Config(inputFile: File, outputFile: File,
   numSamplesInference: Int, learningNumIterations: Int, learningNumSamples: Int, learningRate: Double,
   diminishRate: Double)
 
 object Runner extends App with Logging {
 
   val parser = new scopt.OptionParser[Config]("sampler") {
-    opt[File]('w', "weights") required() valueName("<weightsFile>") action { (x, c) =>
-      c.copy(weightsFile = x) } text("weights file in TSV format (required)")
-    opt[File]('v', "variables") required() valueName("<variablesFile>") action { (x, c) =>
-      c.copy(variablesFile = x) } text("variables file in TSV format (required)")
-    opt[File]('f', "factors") required() valueName("<factorsFile>") action { (x, c) =>
-      c.copy(factorsFile = x) } text("factors File in TSV format (required)")
+    opt[File]('f', "input") required() valueName("<inputFile>") action { (x, c) =>
+      c.copy(inputFile = x) } text("input file in protobuf format")
     opt[File]('o', "outputFile") required() valueName("<outputFile>") action { (x, c) =>
       c.copy(outputFile = x) } text("output file path (required)")
     opt[Int]('i', "numSamplesInference") valueName("<numSamplesInference>") action { (x, c) =>
@@ -35,15 +31,14 @@ object Runner extends App with Logging {
       "The number of threads is automatically decided by the JVM.")
   }
 
-  val config = parser.parse(args, Config(null, null, null, null, 100, 100, 1, 0.1, 0.95)).getOrElse{
+  val config = parser.parse(args, Config(null, null, 100, 100, 1, 0.1, 0.95)).getOrElse{
     System.exit(1)
     throw new RuntimeException("")
   }
   
   log.debug("Parsing input...")
-  val parserInput = DeepDiveInput(config.factorsFile.getCanonicalPath, config.variablesFile.getCanonicalPath,
-    config.weightsFile.getCanonicalPath)
-  val dataInput = DeepDiveInputParser.parse(parserInput)
+  val parserInput = ProtobufInput(config.inputFile.getCanonicalPath)
+  val dataInput = ProtobufInputParser.parse(parserInput)
   
   log.debug("Creating factor graph...")
   val graphContext = GraphContext.create(dataInput)
