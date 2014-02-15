@@ -10,9 +10,9 @@ case object ImplyFactorFunction extends FactorFunction {
     // Return 0 iff the head is false, or at least one variable in the body is false.
     if (variableValues.size == 1)
       variableValues.head
-    else if (variableValues.tail.exists(_ == 0.0))
+    else if (variableValues.take(variableValues.size - 1).exists(_ == 0.0))
       1.0
-    else if (variableValues.head == 0.0)
+    else if (variableValues.last == 0.0)
       0.0
     else
       1.0

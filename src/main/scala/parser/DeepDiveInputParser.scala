@@ -52,7 +52,7 @@ object DeepDiveInputParser extends InputParser[DeepDiveInput] with Logging {
     val parsedRows = rowsIterator map { row => 
       val variableTuple = Tuple2(row.variableId, 
         BooleanVariable(row.variableId, row.initialValue, row.isEvidence, row.isQuery))
-      val factorTuple = Tuple2(row.factorId, FactorVariable(row.variableId, row.isPositive))
+      val factorTuple = Tuple3(row.factorId, row.position, FactorVariable(row.variableId, row.isPositive))
       Tuple2(variableTuple, factorTuple)
     } 
 
@@ -61,7 +61,7 @@ object DeepDiveInputParser extends InputParser[DeepDiveInput] with Logging {
 
     // Build a map from factorID -> variable
     log.debug("Building factor map...")
-    val factorMap = factorTuples.groupBy(_._1).mapValues(_.map(_._2))
+    val factorMap = factorTuples.groupBy(_._1).mapValues(_.sortBy(_._2).map(_._3))
 
     log.debug("Building variable map...")
     val variableMap = variableTuples.toMap
