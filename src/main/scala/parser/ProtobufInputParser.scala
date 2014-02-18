@@ -42,7 +42,7 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
       variablesInputStream.close()
 
       // Load the factors
-      log.info(s"Parsing weights from '${input.inputFactorsPath}'")
+      log.info(s"Parsing factors from '${input.inputFactorsPath}'")
       val factorsInputStream = new FileInputStream(input.inputFactorsPath)
       val factorsIterator = Iterator.continually {
         FactorGraphProtos.Factor.parseDelimitedFrom(factorsInputStream)
@@ -60,7 +60,7 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
       factorsInputStream.close()
 
       // Load the edges. TODO: The grouping is very inefficient
-      log.info(s"Parsing weights from '${input.inputEdgesPath}'")
+      log.info(s"Parsing edges from '${input.inputEdgesPath}'")
       val edgesInputStream = new FileInputStream(input.inputEdgesPath)
       val edgesIterator = Iterator.continually {
         FactorGraphProtos.GraphEdge.parseDelimitedFrom(edgesInputStream)
