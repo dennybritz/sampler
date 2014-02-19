@@ -30,6 +30,12 @@ case object OrFactorFunction extends FactorFunction {
   }
 }
 
+case object XorFactorFunction extends FactorFunction {
+  def evaluate(variableValues: List[Double]) = {
+    if (variableValues.isEmpty || variableValues.count(_ == 1.0) == 1) 1.0 else 0.0
+  }
+}
+
 case object AndFactorFunction extends FactorFunction {
   def evaluate(variableValues: List[Double]) = {
     if (variableValues.isEmpty || variableValues.forall(_ == 1.0)) 1.0 else 0.0

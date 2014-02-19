@@ -56,6 +56,32 @@ class FactorFunctionSpec extends FunSpec {
 
   }
 
+  describe("The XOR factor function") {
+
+    it("should be true with 0 variables") {
+      assert(XorFactorFunction.evaluate(Nil) == 1.0)
+    }
+
+    it("should work with 1 variable") {
+      assert(XorFactorFunction.evaluate(List(1.0)) == 1.0)
+      assert(XorFactorFunction.evaluate(List(0.0)) == 0.0)
+    }
+
+    it("should work with 2 variables") {
+      assert(XorFactorFunction.evaluate(List(1.0, 0.0)) == 1.0)
+      assert(XorFactorFunction.evaluate(List(1.0, 1.0)) == 0.0)
+      assert(XorFactorFunction.evaluate(List(0.0, 0.0)) == 0.0)
+    }
+
+    it("should work more than 2 variables") {
+      assert(XorFactorFunction.evaluate(List(1.0, 0.0, 0.0, 0.0)) == 1.0)
+      assert(XorFactorFunction.evaluate(List(0.0, 0.0, 1.0, 0.0)) == 1.0)
+      assert(XorFactorFunction.evaluate(List(0.0, 0.0, 0.0, 0.0)) == 0.0)
+      assert(XorFactorFunction.evaluate(List(1.0, 1.0, 0.0, 0.0)) == 0.0)
+    }
+
+  }
+
   describe("The AND factor function") {
 
     it("should be true with 0 variables") {
