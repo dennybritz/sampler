@@ -1,7 +1,7 @@
 package org.dennybritz.sampler
 
 import scala.collection.concurrent.TrieMap
-import scala.collection.mutable.{MultiMap, HashMap, Set => MSet}
+import scala.collection.mutable.{MultiMap, HashMap, Set => MSet, ArrayBuffer}
 import scala.util.Random
 
 class Sampler(context: GraphContext) extends Logging {
@@ -16,40 +16,41 @@ class Sampler(context: GraphContext) extends Logging {
 
     val nonEvidenceVariables = variables.filterNot(_.isEvidence).map(_.id).toSet
 
-    // Sums of all samples values to calculate the expectation
-    val sampleSums = HashMap[Int, Double]().withDefaultValue(0.0)
-    // Squared sample sums to calculate running standard deviation
-    val sampleSums2 = HashMap[Int, Double]().withDefaultValue(0.0)
-    // We keep track of the variable values for the first 20% and last 50% of iterations.
-    // We use the data for a Z-Test
     val iteration20 = (numSamples * 0.2).toInt
     val iteration50 = (numSamples * 0.5).toInt
-    val sampleSumsFirst20 = HashMap[Int, Double]().withDefaultValue(0.0)
-    val sampleSumsLast50 = HashMap[Int, Double]().withDefaultValue(0.0)
-    val sampleSums2First20 = HashMap[Int, Double]().withDefaultValue(0.0)
-    val sampleSums2Last50 = HashMap[Int, Double]().withDefaultValue(0.0)
-
-    // TODO: Z-test for convergence
+    // Sums of all samples values to calculate the expectation
+    val sampleSums = ArrayBuffer.fill[Double](variables.size) { 0.0 }
+    // Squared sample sums to calculate running standard deviation
+    val sampleSums2 =  ArrayBuffer.fill[Double](variables.size) { 0.0 }
+    var sampleSumsFirst20 =  ArrayBuffer.fill[Double](variables.size) { 0.0 }
+    var sampleSums2First20 =  ArrayBuffer.fill[Double](variables.size) { 0.0 }
+    var sampleSumsLast50 =  ArrayBuffer.fill[Double](variables.size) { 0.0 }
+    var sampleSums2Last50 =  ArrayBuffer.fill[Double](variables.size) { 0.0 }
 
     // For each iteration
     for (i <- 1 to numSamples) {
       
       log.debug(s"iteration=${i}/${numSamples}")
       // Samples all variables that are not evidence
+      val startTime = System.currentTimeMillis 
       SamplingUtils.sampleVariables(nonEvidenceVariables)
+      val endTime = System.currentTimeMillis 
+
+      log.info(s"samplers/sec=${1000.0 * nonEvidenceVariables.size / (endTime - startTime)}.toInt")
       
       // Updated the significance statistics
-      nonEvidenceVariables.iterator.foreach { variableId =>
+      // We can do this in parallel because we are never accessing the same variable twice
+      nonEvidenceVariables.par.foreach { variableId =>
         val sampleResult = context.getVariableValue(variableId)
-        sampleSums.put(variableId, sampleSums(variableId) + sampleResult)
-        sampleSums2.put(variableId, sampleSums2(variableId) + math.pow(sampleResult, 2))
+        sampleSums(variableId) += sampleResult
+        sampleSums2(variableId) += math.pow(sampleResult, 2)
         if (i <= iteration20) {
-          sampleSumsFirst20.put(variableId, sampleSumsFirst20(variableId) + sampleResult) 
-          sampleSums2First20.put(variableId, sampleSums2First20(variableId) + math.pow(sampleResult, 2)) 
+          sampleSumsFirst20(variableId) += sampleResult
+          sampleSums2First20(variableId) += math.pow(sampleResult, 2)
         }
         if (i >= iteration50) {
-          sampleSumsLast50.put(variableId, sampleSumsLast50(variableId) + sampleResult)  
-          sampleSums2Last50.put(variableId, sampleSums2Last50(variableId) + math.pow(sampleResult, 2)) 
+          sampleSumsLast50(variableId) += sampleResult
+          sampleSums2Last50(variableId) += math.pow(sampleResult, 2)
         }
       }
       

@@ -19,12 +19,9 @@ class GraphContext(
   def getWeightValue(id: Int) = weightValues(id)
 
   def updateVariableValues(newValues: Map[Int, Double]) = {
-    newValues foreach { case(key, value) => variableValues(key) = value }
+    newValues.par foreach { case(key, value) => variableValues(key) = value }
   }
 
-  def updateWeightValues(newValues: Map[Int, Double]) = {
-    newValues foreach { case(key, value) => weightValues(key) = value }
-  }
 
   def updateVariableValue(variableId: Int, newValue: Double) = {
     variableValues(variableId) = newValue

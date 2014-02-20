@@ -18,7 +18,7 @@ object SamplingUtils extends Logging {
     val variableFactors = context.factorsForVariable(variableId).map(context.factors.apply)
 
     // TODO: Be domain-independent
-    val (positiveValues, negativeValues) = variableFactors.toList.map { factor =>
+    val (positiveSum, negativeSum) = variableFactors.toList.map { factor =>
       val factorWeightValue = context.getWeightValue(factor.weightId)
       val (positiveCase, negativeCase) = factor.variables.collect {
         case FactorVariable(`variableId`, true, _) => (1.0, 0.0)
@@ -27,27 +27,17 @@ object SamplingUtils extends Logging {
           val variableValue = context.getVariableValue(someVariableId, isPositive)
           (variableValue, variableValue)
       }.unzip
-
       (factor.function.evaluate(positiveCase) * factorWeightValue, 
         factor.function.evaluate(negativeCase) * factorWeightValue)
-    }.unzip
+    }.reduce { (x,y) => (x._1 + y._1, x._2 + y._2) }
 
-    val positiveSum = positiveValues.sum
-    val negativeSum = negativeValues.sum
-    // TODO: ?
     val newValue = if ((Random.nextDouble * (1.0 + math.exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
     context.updateVariableValue(variableId, newValue)
   }
 
   /* Samples multiple variables and updates the variable values in the context */
   def sampleVariables(variables: Set[Int])(implicit context: GraphContext) : Unit = {
-    val groupSize = Math.max((variables.size / SamplingUtils.parallelism).toInt, 1)
-    val partitionedVariables = variables.iterator.grouped(groupSize)
-    val tasks = partitionedVariables.map { variables =>
-      future { Random.shuffle(variables).foreach(sampleVariable) }
-    }
-    val mergedResults = Future.sequence(tasks)
-    Await.result(mergedResults, 1337.hours)
+    variables.par.foreach(sampleVariable)
   }
 
 }
