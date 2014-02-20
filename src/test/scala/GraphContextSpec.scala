@@ -6,10 +6,11 @@ import org.dennybritz.sampler._
 class GraphContextSpec extends FunSpec {
 
   val context = GraphContext.create(DataInput(
-    Map(0 -> Weight(0, Double.MaxValue, true)),
-    Map(0 -> BooleanVariable(0, 0.0, false, true),
-      1 -> BooleanVariable(0, 1.0, false, true)),
-    Map(0 -> Factor(0, List(FactorVariable(0, true)), 0, ImplyFactorFunction))
+    Vector(Weight(0, Double.MaxValue, true)),
+    Vector(
+      BooleanVariable(0, 0.0, false, true, List(0)),
+      BooleanVariable(1, 1.0, false, true, List(0))),
+    Vector(Factor(0, List(FactorVariable(0, true, 0)), 0, ImplyFactorFunction))
 
   ))
 

@@ -2,7 +2,7 @@ package org.dennybritz.sampler
 
 import java.io.FileInputStream
 import scala.io.Source
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable.{Map => MMap, ArrayBuffer}
 import scala.util.matching._
 import org.deepdive.serialization.FactorGraphProtos
 import scala.collection.JavaConversions._
@@ -21,10 +21,15 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
       val weightsIter = Iterator.continually {
         FactorGraphProtos.Weight.parseDelimitedFrom(weightInputStream)
       }.takeWhile(_ != null)
-      val weightsMap = weightsIter.map { weight =>
-        (weight.getId.toInt, Weight(weight.getId.toInt, weight.getInitialValue, weight.getIsFixed))
-      }.toMap
+      val weights = weightsIter.map { weight =>
+        Weight(weight.getId.toInt, weight.getInitialValue, weight.getIsFixed)
+      }.toVector.sortBy(_.id)
       weightInputStream.close()
+      // Assert that we have sequential ids for indexing
+      weights.iterator.map(_.id).zipWithIndex.find(t => t._1 != t._2).foreach { case(idx, weightId) =>
+        throw new IllegalArgumentException(s"Weight ${weightId} did not match id=${idx}")
+      }
+
 
       // Load the variables
       log.info(s"Parsing variables from '${input.inputVariablesPath}'")
@@ -32,14 +37,17 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
       val variablesIterator = Iterator.continually {
         FactorGraphProtos.Variable.parseDelimitedFrom(variablesInputStream)
       }.takeWhile(_ != null)
-      val variablesMap = variablesIterator.map { variable =>
-        (variable.getId.toInt, BooleanVariable(
+      val variables = ArrayBuffer(variablesIterator.map { variable =>
+        BooleanVariable(
           variable.getId.toInt, 
           Option(variable.getInitialValue).getOrElse(0.0), 
           (variable.hasInitialValue),
-          (!variable.hasInitialValue)))
-      }.toMap
+          (!variable.hasInitialValue), Nil)
+      }.toSeq: _*).sortBy(_.id)
       variablesInputStream.close()
+      variables.iterator.map(_.id).zipWithIndex.find(t => t._1 != t._2).foreach { case(idx, variableId) =>
+        throw new IllegalArgumentException(s"Variable ${variableId} did not match id=${idx}")
+      }
 
       // Load the factors
       log.info(s"Parsing factors from '${input.inputFactorsPath}'")
@@ -47,7 +55,7 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
       val factorsIterator = Iterator.continually {
         FactorGraphProtos.Factor.parseDelimitedFrom(factorsInputStream)
       }.takeWhile(_ != null)
-      val factorMap = scala.collection.mutable.Map[Int, Factor](factorsIterator.map { factor =>
+      val factors = ArrayBuffer(factorsIterator.map { factor =>
         val factorFunction = factor.getFactorFunction match {
           case FactorGraphProtos.Factor.FactorFunctionType.IMPLY => ImplyFactorFunction
           case FactorGraphProtos.Factor.FactorFunctionType.OR => OrFactorFunction
@@ -55,9 +63,12 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
           case FactorGraphProtos.Factor.FactorFunctionType.EQUAL => EqualFactorFunction
           case FactorGraphProtos.Factor.FactorFunctionType.ISTRUE => IsTrueFactorFunction
         }
-        (factor.getId.toInt, Factor(factor.getId.toInt, Nil, factor.getWeightId.toInt, factorFunction))
-      }.toSeq: _*)
+        Factor(factor.getId.toInt, Nil, factor.getWeightId.toInt, factorFunction)
+      }.toSeq: _*).sortBy(_.id)
       factorsInputStream.close()
+      factors.iterator.map(_.id).zipWithIndex.find(t => t._1 != t._2).foreach { case(idx, factorId) =>
+        throw new IllegalArgumentException(s"Factor ${factorId} did not match id=${idx}")
+      }
 
       // Load the edges. TODO: The grouping is very inefficient
       log.info(s"Parsing edges from '${input.inputEdgesPath}'")
@@ -65,18 +76,21 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
       val edgesIterator = Iterator.continually {
         FactorGraphProtos.GraphEdge.parseDelimitedFrom(edgesInputStream)
       }.takeWhile(_ != null)
-      val groupedEdges = edgesIterator.toList.groupBy(_.getFactorId).mapValues(_.sortBy(_.getPosition))
-      groupedEdges.foreach { case (factorId, edges) =>
-        val factorVars = edges.map { edge =>
-          val variableId = edge.getVariableId
-          val isPositive = edge.getIsPositive
-          FactorVariable(variableId.toInt, isPositive)
-        }.toList
-        factorMap(factorId.toInt) = factorMap(factorId.toInt).copy(variables = factorVars)
+      edgesIterator.foreach { edge =>
+        val factorId = edge.getFactorId
+        val variableId = edge.getVariableId
+        val isPositive = edge.getIsPositive
+        val position = edge.getPosition
+
+        val oldVar = variables(variableId.toInt)
+        variables(variableId.toInt) = oldVar.copy(factorIds = oldVar.factorIds :+ factorId.toInt)
+        val oldFactor = factors(factorId.toInt)
+        val factorVar = FactorVariable(variableId.toInt, isPositive, position.toInt)
+        factors(factorId.toInt) = oldFactor.copy(variables= (oldFactor.variables :+ factorVar).sortBy(_.position))
       }
       edgesInputStream.close()
 
-     DataInput(weightsMap, variablesMap, factorMap.toMap)
+     DataInput(weights, variables.toVector, factors.toVector)
   }
 
 

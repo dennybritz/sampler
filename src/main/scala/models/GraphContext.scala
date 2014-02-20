@@ -2,65 +2,58 @@ package org.dennybritz.sampler
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable.IntMap
-import scala.collection.mutable.{HashMap => MHashMap, MultiMap, Set => MSet}
+import scala.collection.mutable.{HashMap => MHashMap, MultiMap, Set => MSet, ArrayBuffer}
 import java.util.concurrent.ConcurrentHashMap
 
 
 class GraphContext(
-  _factosMap: IntMap[Factor], _variablesMap: IntMap[Variable], _weightsMap: IntMap[Weight],
-  _variableFactorMap: IntMap[Set[Int]], 
-  _variableValues: ConcurrentHashMap[Int, Double], _weightValues: ConcurrentHashMap[Int, Double]) {
+  val factors: Vector[Factor], val variables: Vector[_ <: Variable], val weights: Vector[Weight],
+  val variableValues: ArrayBuffer[Double], val weightValues: ArrayBuffer[Double]) {
 
-  def factorsMap = _factosMap
-  def variablesMap = _variablesMap
-  def weightsMap = _weightsMap
-  def variableFactorMap = _variableFactorMap
-  def variableValues = _variableValues
-  def weightValues = _weightValues
+  def factorsForVariable(id: Int) = variables(id).factorIds
 
-  def getVariableValue(id: Int, isPositive : Boolean = true) = {
-    if (isPositive) _variableValues(id) else 1.0 - _variableValues(id)
+  def getVariableValue(id: Int, isPositive : Boolean = true) : Double = {
+    if (isPositive) variableValues(id) else 1.0 - variableValues(id)
   }
 
-  def getWeightValue(id: Int) = _weightValues(id)
+  def getWeightValue(id: Int) = weightValues(id)
 
   def updateVariableValues(newValues: Map[Int, Double]) = {
-    newValues foreach { case(key, value) => variableValues.update(key, value) }
+    newValues foreach { case(key, value) => variableValues(key) = value }
   }
 
   def updateWeightValues(newValues: Map[Int, Double]) = {
-    newValues foreach { case(key, value) => weightValues.update(key, value) }
+    newValues foreach { case(key, value) => weightValues(key) = value }
   }
 
-  def updateVariableValue(variableId: Int, newValue: Double) = 
-    _variableValues.update(variableId, newValue)
+  def updateVariableValue(variableId: Int, newValue: Double) = {
+    variableValues(variableId) = newValue
+  }
 
-  def updateWeightValue(weightId: Int, newValue: Double) = 
-    _weightValues.update(weightId, newValue)
+  def updateWeightValue(weightId: Int, newValue: Double) = {
+    weightValues(weightId) = newValue
+  }
 
 }
 
 object GraphContext {
   def create(input: DataInput) : GraphContext = {
 
-    // TOOD: Can we make this functional?
-    val tmpVariableFactorMap = new MHashMap[Int, MSet[Int]] with MultiMap[Int, Int]
-    input.factorsMap.foreach { case(factorId, factor) =>
-      factor.variables.foreach( v => tmpVariableFactorMap.addBinding(v.id, factorId))
+    // Assert that we have sequential ids for indexing
+    input.factors.iterator.map(_.id).zipWithIndex.find(t => t._1 != t._2).foreach { case(idx, factorId) =>
+      throw new IllegalArgumentException(s"Factor ${factorId} did not match id=${idx}")
     }
-    // Add empty binding for all variables that don't have factors
-    input.variablesMap.keys.foreach { variableId =>
-      if (!tmpVariableFactorMap.contains(variableId)) {
-        tmpVariableFactorMap.put(variableId, MSet[Int]())
-      }
+    input.variables.iterator.map(_.id).zipWithIndex.find(t => t._1 != t._2).foreach { case(idx, variableId) =>
+      throw new IllegalArgumentException(s"Variable ${variableId} did not match id=${idx}")
+    }
+    input.weights.iterator.map(_.id).zipWithIndex.find(t => t._1 != t._2).foreach { case(idx, weightId) =>
+      throw new IllegalArgumentException(s"Weight ${weightId} did not match id=${idx}")
     }
 
-    val variableFactorMap = tmpVariableFactorMap.toMap.mapValues(_.toSet)
-    val variableValues = new ConcurrentHashMap[Int, Double](input.variablesMap.mapValues(_.value))
-    val weightValues = new ConcurrentHashMap[Int, Double](input.weightsMap.mapValues(_.value))
+    // val variableFactorMap = tmpVariableFactorMap.toMap.mapValues(_.toSet)
+    val variableValues = ArrayBuffer(input.variables.map(_.value): _*)
+    val weightValues = ArrayBuffer(input.weights.map(_.value): _*)
 
-    new GraphContext(IntMap(input.factorsMap.toSeq: _*), 
-      IntMap(input.variablesMap.toSeq: _*), IntMap(input.weightsMap.toSeq: _*),
-      IntMap(variableFactorMap.toSeq: _*), variableValues, weightValues)
+    new GraphContext(input.factors, input.variables, input.weights, variableValues, weightValues)
   }
 }

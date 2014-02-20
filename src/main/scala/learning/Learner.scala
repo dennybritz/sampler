@@ -14,7 +14,7 @@ class Learner(context: GraphContext) extends Logging {
 
 
   def evaluateFactor(factorId: Int) : Double = {
-    val factor = context.factorsMap(factorId)
+    val factor = context.factors(factorId)
     val factorVariables = factor.variables map (fv => context.getVariableValue(fv.id))
     factor.function.evaluate(factorVariables)
   }
@@ -23,7 +23,7 @@ class Learner(context: GraphContext) extends Logging {
   // TODO: How to generalize this?
   def sampleFactors(variables: Set[Int], factors: Set[Int], 
     numSamples: Int) : Map[Int, Double] = {
-    
+
     // Partition size for parallelizing factor evaluation
     val partitionSize = Math.max((factors.size / SamplingUtils.parallelism).toInt, 1)
    
@@ -45,21 +45,21 @@ class Learner(context: GraphContext) extends Logging {
 
 
   def learnWeights(numIterations: Int, numSamples: Int, learningRate: Double, regularizationConstant: Double,
-    diminishRate: Double) : Map[Int, Double] = {
+    diminishRate: Double) : Array[Double] = {
 
-    val queryVariables = context.variablesMap.values.filter(_.isQuery).map(_.id).toSet
-    val evidenceVariables = context.variablesMap.keySet -- queryVariables
+    val queryVariables = context.variables.filter(_.isQuery).map(_.id).toSet
+    val evidenceVariables =  context.variables.filter(!_.isQuery).map(_.id).toSet
     val evidenceValues = evidenceVariables.map(id => (id, context.getVariableValue(id))).toMap
     // We only learn weights for factors that are connected to evidence
-    val queryFactors = evidenceVariables.flatMap(context.variableFactorMap(_)).toSet
-    val factorWeightIds = context.factorsMap.filterKeys(queryFactors).values.map(_.weightId).toSet
+    val queryFactors = evidenceVariables.flatMap(context.factorsForVariable(_)).toSet
+    val factorWeightIds = context.factors.filter(x => queryFactors.contains(x.id)).map(_.weightId).toSet
     val queryWeightIds = for {
       weightId <- factorWeightIds
-      weight = context.weightsMap(weightId)
+      weight = context.weights(weightId)
       if !weight.isFixed
     } yield weight.id
     // Map from weight -> Factors
-    val weightFactorMap = context.factorsMap.filterKeys(queryFactors).values.groupBy(_.weightId).mapValues(_.map(_.id))
+    val weightFactorMap = queryFactors.map(context.factors.apply).groupBy(_.weightId).mapValues(_.map(_.id))
     val weightPartitionSize = Math.max((queryWeightIds.size / SamplingUtils.parallelism).toInt, 1)
 
     log.debug(s"num_iterations=${numIterations}")
@@ -68,13 +68,13 @@ class Learner(context: GraphContext) extends Logging {
     log.debug(s"learning_rate=${learningRate}")
     log.debug(s"diminish_rate=${diminishRate}")
     log.debug(s"regularization_constant=${regularizationConstant}")
-    log.debug(s"num_factors=${context.factorsMap.size} num_query_factors=${queryFactors.size}")
-    log.debug(s"num_weights=${context.weightsMap.size} num_query_weights=${queryWeightIds.size}")
+    log.debug(s"num_factors=${context.factors.size} num_query_factors=${queryFactors.size}")
+    log.debug(s"num_weights=${context.weights.size} num_query_weights=${queryWeightIds.size}")
     log.debug(s"num_query_variables=${queryVariables.size} num_evidence_variables=${evidenceVariables.size}")
 
     if(queryWeightIds.size == 0) {
       log.debug("no query weights, nothing to learn!")
-      return Map.empty[Int, Double]
+      return Array()
     }
 
     for(i <- 0 until numIterations) {
@@ -90,7 +90,6 @@ class Learner(context: GraphContext) extends Logging {
       val unconditionedEx = sampleFactors(queryVariables ++ evidenceVariables, queryFactors, numSamples)
 
       // Apply the weight changes in parallel
-
       val tasks = queryWeightIds.iterator.grouped(weightPartitionSize).map { weightBatch =>
         Future {
           weightBatch.map { weightId =>
@@ -118,7 +117,7 @@ class Learner(context: GraphContext) extends Logging {
     }
 
     // Return a map of weightId -> weightValue
-    context.weightValues.toMap
+    context.weightValues.toArray
     
   }
 

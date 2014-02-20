@@ -8,9 +8,10 @@ sealed trait Variable {
   def isEvidence: Boolean
   def isQuery: Boolean
   def domain: List[Double]
+  def factorIds: List[Int]
 }
 
-case class BooleanVariable(id: Int, value: Double, isEvidence: Boolean, isQuery: Boolean) 
+case class BooleanVariable(id: Int, value: Double, isEvidence: Boolean, isQuery: Boolean, factorIds: List[Int]) 
   extends Variable {
   lazy val domain = List(1.0, 0.0)
 }

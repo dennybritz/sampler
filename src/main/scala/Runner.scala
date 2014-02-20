@@ -60,7 +60,7 @@ object Runner extends App with Logging {
   log.debug("Performing inference...")
   val sampler = new Sampler(graphContext)
   val inferenceResult = sampler.calculateMarginals(config.numSamplesInference, 
-    graphContext.variablesMap.values.toSeq)
+    graphContext.variables)
   FileWriter.dumpVariables(inferenceResult.variables, config.outputFile.getCanonicalPath)
 
 

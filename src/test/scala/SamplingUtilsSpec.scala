@@ -6,20 +6,20 @@ import org.dennybritz.sampler._
 class SamplingUtilsSpec extends FunSpec {
 
   val sampleDataInput = DataInput(
-    Map(
-      0 -> Weight(0, Double.MaxValue, false),
-      1 -> Weight(1, Double.MinValue, false)
+    Vector(
+      Weight(0, Double.MaxValue, false),
+      Weight(1, Double.MinValue, false)
     ),
-    Map(
-      0 -> BooleanVariable(0, 0.0, false, true),
-      1 -> BooleanVariable(1, 0.0, false, true),
-      2 -> BooleanVariable(2, 1.0, true, false),
-      3 -> BooleanVariable(3, 0.0, false, true)
+    Vector(
+      BooleanVariable(0, 0.0, false, true, List(0)),
+      BooleanVariable(1, 0.0, false, true, List(1)),
+      BooleanVariable(2, 1.0, true, false, List(1)),
+      BooleanVariable(3, 0.0, false, true, List(2))
     ),
-    Map(
-      0 -> Factor(0, List(FactorVariable(0, true)), 0, ImplyFactorFunction),
-      1 -> Factor(1, List(FactorVariable(2, true), FactorVariable(1, true)), 1, ImplyFactorFunction),
-      2 -> Factor(2, List(FactorVariable(3, false)), 0, ImplyFactorFunction)
+    Vector(
+      Factor(0, List(FactorVariable(0, true, 0)), 0, ImplyFactorFunction),
+      Factor(1, List(FactorVariable(2, true, 0), FactorVariable(1, true, 1)), 1, ImplyFactorFunction),
+      Factor(2, List(FactorVariable(3, false, 0)), 0, ImplyFactorFunction)
     )
   )
 

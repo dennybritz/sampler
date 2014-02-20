@@ -15,15 +15,15 @@ object SamplingUtils extends Logging {
   /* Samples a variable and updates its value in the context */
   def sampleVariable(variableId: Int)(implicit context: GraphContext) : Unit  = {
     // All factors that connect to the variable
-    val variableFactors = context.variableFactorMap(variableId) map (context.factorsMap.apply)
+    val variableFactors = context.factorsForVariable(variableId).map(context.factors.apply)
 
     // TODO: Be domain-independent
     val (positiveValues, negativeValues) = variableFactors.toList.map { factor =>
       val factorWeightValue = context.getWeightValue(factor.weightId)
       val (positiveCase, negativeCase) = factor.variables.collect {
-        case FactorVariable(`variableId`, true) => (1.0, 0.0)
-        case FactorVariable(`variableId`, false) => (0.0, 1.0)
-        case FactorVariable(someVariableId, isPositive) => 
+        case FactorVariable(`variableId`, true, _) => (1.0, 0.0)
+        case FactorVariable(`variableId`, false, _) => (0.0, 1.0)
+        case FactorVariable(someVariableId, isPositive, _) => 
           val variableValue = context.getVariableValue(someVariableId, isPositive)
           (variableValue, variableValue)
       }.unzip
@@ -34,7 +34,6 @@ object SamplingUtils extends Logging {
 
     val positiveSum = positiveValues.sum
     val negativeSum = negativeValues.sum
-
     // TODO: ?
     val newValue = if ((Random.nextDouble * (1.0 + math.exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
     context.updateVariableValue(variableId, newValue)

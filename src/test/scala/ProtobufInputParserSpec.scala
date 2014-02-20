@@ -32,9 +32,9 @@ class ProtobufInputParserSpec extends FunSpec {
 
       val parseResult = ProtobufInputParser.parse(new ProtobufInput(tmpFile.getCanonicalPath,
         "/dev/null", "/dev/null", "/dev/null"))
-      assert(parseResult.weightsMap === Map(
-        0 -> Weight(0, 0.0, false),
-        1 -> Weight(1, 10.0, true)
+      assert(parseResult.weights === List(
+        Weight(0, 0.0, false),
+        Weight(1, 10.0, true)
       ))
     }
 
@@ -54,10 +54,10 @@ class ProtobufInputParserSpec extends FunSpec {
 
       val parseResult = ProtobufInputParser.parse(new ProtobufInput(
         "/dev/null", tmpFile.getCanonicalPath, "/dev/null", "/dev/null"))
-      assert(parseResult.variablesMap === Map(
-        0 -> BooleanVariable(0, 0.0, false, true),
-        1 -> BooleanVariable(1, 1.0, true, false),
-        2 -> BooleanVariable(2, 0.0, true, false)
+      assert(parseResult.variables === List(
+        BooleanVariable(0, 0.0, false, true, List()),
+        BooleanVariable(1, 1.0, true, false, List()),
+        BooleanVariable(2, 0.0, true, false, List())
       ))
     }
 
@@ -106,9 +106,9 @@ class ProtobufInputParserSpec extends FunSpec {
       val parseResult = ProtobufInputParser.parse(new ProtobufInput(
         tmpFileWeights.getCanonicalPath, tmpFileVariables.getCanonicalPath, 
         tmpFileFactors.getCanonicalPath, tmpFileEdges.getCanonicalPath))
-      assert(parseResult.factorsMap === Map(
-        0 -> Factor(0, List(FactorVariable(0, true), FactorVariable(1, true)), 0, ImplyFactorFunction),
-        1 -> Factor(1, List(FactorVariable(2, true)), 1, ImplyFactorFunction)
+      assert(parseResult.factors === List(
+        Factor(0, List(FactorVariable(0, true, 0), FactorVariable(1, true, 1)), 0, ImplyFactorFunction),
+        Factor(1, List(FactorVariable(2, true, 0)), 1, ImplyFactorFunction)
       ))
     }
 
