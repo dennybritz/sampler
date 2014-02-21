@@ -36,7 +36,7 @@ class Sampler(context: GraphContext) extends Logging {
       SamplingUtils.sampleVariables(nonEvidenceVariables)
       val endTime = System.currentTimeMillis 
 
-      log.info(s"samplers/sec=${1000.0 * nonEvidenceVariables.size / (endTime - startTime)}.toInt")
+      log.info(s"samplers/sec=${(1000.0 * nonEvidenceVariables.size / (endTime - startTime)).toInt}")
       
       // Updated the significance statistics
       // We can do this in parallel because we are never accessing the same variable twice
