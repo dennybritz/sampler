@@ -14,7 +14,7 @@ object FileWriter {
 
   def dumpWeights(weights: Seq[Double], filename: String) = {
     val pw = new java.io.PrintWriter(new File(filename))
-    weights.zipWithIndex.iterator.foreach { case(weightId, value) =>
+    weights.zipWithIndex.iterator.foreach { case(value, weightId) =>
       pw.write(s"${weightId}\t${value}\n")
     }
     pw.close()
