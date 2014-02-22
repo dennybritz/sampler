@@ -6,12 +6,6 @@ import scala.concurrent.duration._
 
 object SamplingUtils extends Logging {
 
-  // Use constant parallelism based on the number of cores
-  lazy val _parallelism = Runtime.getRuntime.availableProcessors.toInt
-  import ExecutionContext.Implicits.global
-
-  def parallelism = _parallelism
-
   /* Samples a variable and updates its value in the context */
   def sampleVariable(variableId: Int)(implicit context: GraphContext) : Unit  = {
     // All factors that connect to the variable

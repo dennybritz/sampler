@@ -24,9 +24,6 @@ class Learner(context: GraphContext) extends Logging {
   def sampleFactors(variables: Set[Int], factors: Set[Int], 
     numSamples: Int) : Map[Int, Double] = {
 
-    // Partition size for parallelizing factor evaluation
-    val partitionSize = Math.max((factors.size / SamplingUtils.parallelism).toInt, 1)
-   
     val defaultMap = Map.empty[Int, Double].withDefaultValue(0.0)
     (0 until numSamples).foldLeft(defaultMap) { case(values, iteration) =>
       // Sample all variables and update their values in the context
@@ -53,11 +50,9 @@ class Learner(context: GraphContext) extends Logging {
     } yield weight.id
     // Map from weight -> Factors
     val weightFactorMap = queryFactors.map(context.factors.apply).groupBy(_.weightId).mapValues(_.map(_.id))
-    val weightPartitionSize = Math.max((queryWeightIds.size / SamplingUtils.parallelism).toInt, 1)
 
     log.debug(s"num_iterations=${numIterations}")
     log.debug(s"num_samples_per_iteration=${numSamples}")
-    log.debug(s"parallelism=${SamplingUtils.parallelism}")
     log.debug(s"learning_rate=${learningRate}")
     log.debug(s"diminish_rate=${diminishRate}")
     log.debug(s"regularization_constant=${regularizationConstant}")
