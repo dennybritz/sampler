@@ -10,8 +10,6 @@ class Learner(context: GraphContext) extends Logging {
 
   // Make the context implicit
   implicit val _context = context
-  import ExecutionContext.Implicits.global
-
 
   def evaluateFactor(factorId: Int) : Double = {
     val factor = context.factors(factorId)
