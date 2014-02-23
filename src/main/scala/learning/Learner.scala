@@ -11,57 +11,35 @@ class Learner(context: GraphContext) extends Logging {
   // Make the context implicit
   implicit val _context = context
 
-  def evaluateFactor(factorId: Int) : Double = {
-    val factor = context.factors(factorId)
-    val factorVariables = factor.variables map (fv => context.getVariableValue(fv.id))
-    factor.function.evaluate(factorVariables)
-  }
-
-  // Computes the marginal probability that each factor is true
-  // TODO: How to generalize this?
-  def sampleFactors(variables: Set[Int], factors: Set[Int], 
-    numSamples: Int) : Map[Int, Double] = {
-
-    val defaultMap = Map.empty[Int, Double].withDefaultValue(0.0)
-    (0 until numSamples).foldLeft(defaultMap) { case(values, iteration) =>
-      // Sample all variables and update their values in the context
-      SamplingUtils.sampleVariables(variables)
-      // Evaluate all factors
-      factors.par.map { factorId => (factorId, evaluateFactor(factorId) + values(factorId)) }.toMap.seq
-    }.mapValues(_ / numSamples) 
-  }
-
-
   def learnWeights(numIterations: Int, numSamples: Int, learningRate: Double, regularizationConstant: Double,
     diminishRate: Double) : Array[Double] = {
 
-    val queryVariables = context.variables.filter(_.isQuery).map(_.id).toSet
-    val evidenceVariables =  context.variables.filter(!_.isQuery).map(_.id).toSet
-    val evidenceValues = evidenceVariables.map(id => (id, context.getVariableValue(id))).toMap
+    val queryVariableIds = context.variables.filter(_.isQuery).map(_.id).toSet
+    val evidenceVariableIds =  context.variables.filter(!_.isQuery).map(_.id).toSet
+    val evidenceValueMap = evidenceVariableIds.map(id => (id, context.getVariableValue(id))).toMap
+    
     // We only learn weights for factors that are connected to evidence
-    val queryFactors = evidenceVariables.flatMap(context.factorsForVariable(_)).toSet
-    val factorWeightIds = context.factors.filter(x => queryFactors.contains(x.id)).map(_.weightId).toSet
-    val queryWeightIds = for {
-      weightId <- factorWeightIds
-      weight = context.weights(weightId)
-      if !weight.isFixed
-    } yield weight.id
-    // Map from weight -> Factors
-    val weightFactorMap = queryFactors.map(context.factors.apply).groupBy(_.weightId).mapValues(_.map(_.id))
+    val queryFactorIds = evidenceVariableIds.flatMap(context.factorsForVariable(_)).toSet
+    val queryWeightIds = queryFactorIds.map(context.factors.apply)
+      .map(f => context.weights(f.weightId)).filterNot(_.isFixed).map(_.id)
+    val weightFactorMap = queryFactorIds.map(context.factors.apply).groupBy(_.weightId).mapValues(_.map(_.id))
 
     log.debug(s"num_iterations=${numIterations}")
     log.debug(s"num_samples_per_iteration=${numSamples}")
     log.debug(s"learning_rate=${learningRate}")
     log.debug(s"diminish_rate=${diminishRate}")
     log.debug(s"regularization_constant=${regularizationConstant}")
-    log.debug(s"num_factors=${context.factors.size} num_query_factors=${queryFactors.size}")
+    log.debug(s"num_factors=${context.factors.size} num_query_factors=${queryFactorIds.size}")
     log.debug(s"num_weights=${context.weights.size} num_query_weights=${queryWeightIds.size}")
-    log.debug(s"num_query_variables=${queryVariables.size} num_evidence_variables=${evidenceVariables.size}")
+    log.debug(s"num_query_variables=${queryVariableIds.size} num_evidence_variables=${evidenceVariableIds.size}")
 
     if(queryWeightIds.size == 0) {
       log.debug("no query weights, nothing to learn!")
-      return Array()
+      return context.weightValues.toArray
     }
+
+    // Initial values for factors
+    val initialValues = queryFactorIds.map(id => (id, 0.0)).toMap
 
     for(i <- 0 until numIterations) {
 
@@ -69,31 +47,44 @@ class Learner(context: GraphContext) extends Logging {
       
       log.debug(s"iteration=${i} learning_rate=${iterLearningRate}")
 
-      // Compute the expectation for all factors sampling only query variables
-      val conditionedEx = sampleFactors(queryVariables, queryFactors, numSamples)
-
+      val conditionedEx = (0 until numSamples).foldLeft(initialValues) { case(currentValues, iteration) =>
+        SamplingUtils.sampleVariables(queryVariableIds)
+        // val factorValues = SamplingUtils.evaluateFactors(queryFactorIds)
+        currentValues.par.map { case(k,v) =>
+          (k, v + SamplingUtils.evaluateFactor(k))
+        }.toMap.seq
+      }.par.mapValues(_ / numSamples) 
+     
       // Compute the expectation for all factors sampling all variables
-      val unconditionedEx = sampleFactors(queryVariables ++ evidenceVariables, queryFactors, numSamples)
+      val unconditionedEx = (0 until numSamples).foldLeft(initialValues) { case(currentValues, iteration) =>
+        SamplingUtils.sampleVariables(queryVariableIds ++ evidenceVariableIds)
+        currentValues.par.map { case(k,v) =>
+          (k, v + SamplingUtils.evaluateFactor(k))
+        }.toMap.seq
+      }.par.mapValues(_ / numSamples) 
 
       // Apply the weight changes in parallel
       val weightChanges = queryWeightIds.par.map { weightId =>
         val factors = weightFactorMap(weightId)
-        val currentWeight = context.getWeightValue(weightId)
         val weightChange = factors.foldLeft(0.0) { case(x, f) => x + (conditionedEx(f) - unconditionedEx(f)) }
-        val newWeight = currentWeight + (weightChange * iterLearningRate) * (1.0/(1.0+regularizationConstant*iterLearningRate))
+        (weightId, weightChange)
+      }.toMap
+
+      weightChanges.par.foreach { case(weightId, weightChange) => 
+        val currentWeight = context.getWeightValue(weightId)
+        val newWeight = currentWeight + (weightChange * iterLearningRate) * 
+          (1.0/(1.0+regularizationConstant*iterLearningRate))
         context.updateWeightValue(weightId, newWeight)
-        weightChange
       }
 
       // Calculate the L2 norm of the weight changes and the maximum gradient
-      val gradientNorm = math.sqrt(weightChanges.map(math.pow(_, 2)).sum)
-      val maxGradient = weightChanges.maxBy(Math.abs)
+      val gradientNorm = math.sqrt(weightChanges.par.values.map(math.pow(_, 2)).sum)
+      val maxGradient = weightChanges.par.values.maxBy(Math.abs)
       log.debug(s"gradient_norm=${gradientNorm} max_gradient=${maxGradient}")
 
       // Reset the evidence variables to their evidence values 
       // (we changed their values by sampling them above)
-      context.updateVariableValues(evidenceValues)
-
+      context.updateVariableValues(evidenceValueMap)
     }
 
     // Return a map of weightId -> weightValue

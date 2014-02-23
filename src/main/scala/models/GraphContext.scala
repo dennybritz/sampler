@@ -22,7 +22,6 @@ class GraphContext(
     newValues.par foreach { case(key, value) => variableValues(key) = value }
   }
 
-
   def updateVariableValue(variableId: Int, newValue: Double) = {
     variableValues(variableId) = newValue
   }

@@ -1,10 +1,18 @@
 package org.dennybritz.sampler
 
 import scala.util.Random
+import scala.collection.immutable.IntMap
 import scala.concurrent._
 import scala.concurrent.duration._
 
 object SamplingUtils extends Logging {
+
+  /* Evaluates a factor given the values in the current context */
+  def evaluateFactor(factorId: Int)(implicit context: GraphContext) : Double = {
+    val factor = context.factors(factorId)
+    val factorVariables = factor.variables.map(v => context.getVariableValue(v.id, v.isPositive))
+    factor.function.evaluate(factorVariables)
+  }
 
   /* Samples a variable and updates its value in the context */
   def sampleVariable(variableId: Int)(implicit context: GraphContext) : Unit  = {

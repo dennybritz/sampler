@@ -33,7 +33,7 @@ class LearningSpec extends FunSpec {
       val context = GraphContext.create(dataInput)
       val learner = new Learner(context)
       val result = learner.learnWeights(100, 10, 0.1, 0.01, 0.96)
-      assert(result.isEmpty)
+      assert(result.toSeq == Array(0.0).toSeq)
     }
   }
 
