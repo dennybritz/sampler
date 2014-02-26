@@ -1,5 +1,7 @@
 Gibbs sampler for factor graphs, including weight learning.
 
+**NOTE: This sampler is not a high-speed sampler! If you are using it with DeepDive and run into performance issues plese contact me! **
+
 ### Usage:
 
 ```
