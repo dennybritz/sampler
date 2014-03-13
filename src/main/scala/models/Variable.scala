@@ -15,3 +15,6 @@ case class BooleanVariable(id: Int, value: Double, isEvidence: Boolean, isQuery:
   extends Variable {
   lazy val domain = List(1.0, 0.0)
 }
+
+case class MultinomialVariable(id: Int, value: Double, isEvidence: Boolean, isQuery: Boolean, factorIds: List[Int], 
+  domain: List[Double]) extends Variable

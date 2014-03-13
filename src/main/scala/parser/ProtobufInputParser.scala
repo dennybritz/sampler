@@ -39,10 +39,10 @@ object ProtobufInputParser extends InputParser[ProtobufInput] with Logging {
       }.takeWhile(_ != null)
       val variables = ArrayBuffer(variablesIterator.map { variable =>
         BooleanVariable(
-          variable.getId.toInt, 
+          variable.getId.toInt,
           Option(variable.getInitialValue).getOrElse(0.0), 
-          (variable.hasInitialValue),
-          (!variable.hasInitialValue), Nil)
+          (variable.getIsEvidence),
+          (!variable.getIsEvidence), Nil)
       }.toSeq: _*).sortBy(_.id)
       variablesInputStream.close()
       variables.iterator.map(_.id).zipWithIndex.find(t => t._1 != t._2).foreach { case(idx, variableId) =>

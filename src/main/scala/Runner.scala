@@ -3,22 +3,24 @@ package org.dennybritz.sampler
 import java.io.File
 
 case class Config(inputWeights: File, inputVariables: File, inputFactors: File, inputEdges: File, 
-  outputFile: File, numSamplesInference: Int, learningNumIterations: Int, learningNumSamples: Int, 
+  inputMeta: File, outputDir: File, numSamplesInference: Int, learningNumIterations: Int, learningNumSamples: Int, 
   learningRate: Double, diminishRate: Double)
 
 object Runner extends App with Logging {
 
   val parser = new scopt.OptionParser[Config]("sampler") {
-    opt[File]("input-weights") required() valueName("<inputWeights>") action { (x, c) =>
+    opt[File]('w', "input-weights") required() valueName("<inputWeights>") action { (x, c) =>
       c.copy(inputWeights = x) } text("Weights file in protobuf format")
-    opt[File]("input-variables") required() valueName("<inputVariables>") action { (x, c) =>
+    opt[File]('v', "input-variables") required() valueName("<inputVariables>") action { (x, c) =>
       c.copy(inputVariables = x) } text("Variables file in protobuf format")
-    opt[File]("input-factors") required() valueName("<inputFactors>") action { (x, c) =>
+    opt[File]('f', "input-factors") required() valueName("<inputFactors>") action { (x, c) =>
       c.copy(inputFactors = x) } text("Factors file in protobuf format")
-    opt[File]("input-edges") required() valueName("<inputEdges>") action { (x, c) =>
+    opt[File]('e', "input-edges") required() valueName("<inputEdges>") action { (x, c) =>
       c.copy(inputEdges = x) } text("Edge file in protobuf format")
-    opt[File]('o', "outputFile") required() valueName("<outputFile>") action { (x, c) =>
-      c.copy(outputFile = x) } text("output file path (required)")
+    opt[File]('m', "input-meta") required() valueName("<inputMeta>") action { (x, c) =>
+      c.copy(inputMeta = x) } text("Edge file in protobuf format")
+    opt[File]('o', "outputDir") required() valueName("<outputDir>") action { (x, c) =>
+      c.copy(outputDir = x) } text("output file path (required)")
     opt[Int]('i', "numSamplesInference") valueName("<numSamplesInference>") action { (x, c) =>
       c.copy(numSamplesInference = x) } text("number of samples during inference (default: 100)")
     opt[Int]('l', "learningNumIterations") valueName("<learningNumIterations>") action { (x, c) =>
@@ -37,10 +39,16 @@ object Runner extends App with Logging {
       "The number of threads is automatically decided by the JVM.")
   }
 
-  val config = parser.parse(args, Config(null, null, null, null, null, 100, 100, 1, 0.1, 0.95)).getOrElse{
+  val config = parser.parse(args, Config(null, null, null, null, null, null, 100, 100, 1, 0.1, 0.95)).getOrElse{
     System.exit(1)
     throw new RuntimeException("")
   }
+
+  // Create output
+  config.outputDir.mkdirs()
+  val variablesOutFile = config.outputDir.getCanonicalPath + "/inference_result.out"
+  val weightsOutFile = config.outputDir.getCanonicalPath + "/inference_result.out.weights"
+
   
   log.debug("Parsing input...")
   val parserInput = ProtobufInput(config.inputWeights.getCanonicalPath, config.inputVariables.getCanonicalPath,
@@ -55,13 +63,13 @@ object Runner extends App with Logging {
   val weightsResult = learner.learnWeights(
     config.learningNumIterations, config.learningNumSamples,
     config.learningRate, 0.01, config.diminishRate)
-  FileWriter.dumpWeights(weightsResult, config.outputFile.getCanonicalPath + ".weights")
+  FileWriter.dumpWeights(weightsResult, weightsOutFile)
   
   log.debug("Performing inference...")
   val sampler = new Sampler(graphContext)
   val inferenceResult = sampler.calculateMarginals(config.numSamplesInference, 
     graphContext.variables)
-  FileWriter.dumpVariables(inferenceResult.variables, config.outputFile.getCanonicalPath)
+  FileWriter.dumpVariables(inferenceResult.variables, variablesOutFile)
 
 
 

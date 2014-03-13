@@ -1,23 +1,33 @@
 package org.dennybritz.sampler
 
-import java.io.File
+import java.io.{File, FileOutputStream}
+import org.deepdive.serialization.InferenceResultProtos
 
 object FileWriter {
 
   def dumpVariables(variables: List[VariableInferenceResult], filename: String) {
-    val pw = new java.io.PrintWriter(new File(filename))
-    variables.iterator.foreach { row =>
-      pw.write(s"${row.id}\t${row.lastSample.toInt}\t${row.expectation}\n")
+    val file = new FileOutputStream(filename)
+    variables.par.foreach { v =>
+      val builder = InferenceResultProtos.VariableInferenceResult.newBuilder
+      builder.setId(v.id)
+      builder.setExpectation(v.expectation)
+      builder.setId(v.id)
+      val obj = builder.build()
+      file.synchronized { obj.writeDelimitedTo(file) } 
     }
-    pw.close()
+    file.close()
   }
 
   def dumpWeights(weights: Seq[Double], filename: String) = {
-    val pw = new java.io.PrintWriter(new File(filename))
-    weights.zipWithIndex.iterator.foreach { case(value, weightId) =>
-      pw.write(s"${weightId}\t${value}\n")
+    val file = new FileOutputStream(filename)
+    weights.zipWithIndex.par.foreach { case(value, weightId) =>
+      val builder = InferenceResultProtos.WeightInferenceResult.newBuilder
+      builder.setId(weightId)
+      builder.setValue(value)
+      val obj = builder.build()
+      file.synchronized { obj.writeDelimitedTo(file) } 
     }
-    pw.close()
+    file.close()
   }
 
 }

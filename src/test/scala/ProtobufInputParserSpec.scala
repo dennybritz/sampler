@@ -44,11 +44,13 @@ class ProtobufInputParserSpec extends FunSpec {
       val tmpFile = File.createTempFile("ProtobufInputParserSpec", "pb")
       val output = new FileOutputStream(tmpFile)
 
-      vBuilder.setId(0).setDataType(FactorGraphProtos.Variable.VariableDataType.BOOLEAN)
+      vBuilder.setId(0).setIsEvidence(false).setDataType(FactorGraphProtos.Variable.VariableDataType.BOOLEAN)
       vBuilder.build().writeDelimitedTo(output)
-      vBuilder.setId(1).setInitialValue(1.0).setDataType(FactorGraphProtos.Variable.VariableDataType.BOOLEAN)
+      vBuilder.setId(1).setInitialValue(1.0).setIsEvidence(true)
+        .setDataType(FactorGraphProtos.Variable.VariableDataType.BOOLEAN)
       vBuilder.build().writeDelimitedTo(output)
-      vBuilder.setId(2).setInitialValue(0.0).setDataType(FactorGraphProtos.Variable.VariableDataType.BOOLEAN)
+      vBuilder.setId(2).setInitialValue(0.0).setIsEvidence(true)
+        .setDataType(FactorGraphProtos.Variable.VariableDataType.BOOLEAN)
       vBuilder.build().writeDelimitedTo(output)
       output.close()
 
