@@ -19,6 +19,9 @@ object SamplingUtils extends Logging {
     // All factors that connect to the variable
     val variableFactors = context.factorsForVariable(variableId).map(context.factors.apply)
 
+    if (variableFactors.isEmpty)
+      return
+
     // TODO: Be domain-independent
     val (positiveSum, negativeSum) = variableFactors.toList.map { factor =>
       val factorWeightValue = context.getWeightValue(factor.weightId)

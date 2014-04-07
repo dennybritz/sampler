@@ -51,9 +51,10 @@ object Runner extends App with Logging {
 
   
   log.debug("Parsing input...")
-  val parserInput = ProtobufInput(config.inputWeights.getCanonicalPath, config.inputVariables.getCanonicalPath,
-    config.inputFactors.getCanonicalPath, config.inputEdges.getCanonicalPath)
-  val dataInput = ProtobufInputParser.parse(parserInput)
+  val parserInput = BinaryInput(config.inputWeights.getCanonicalPath, config.inputVariables.getCanonicalPath,
+    config.inputFactors.getCanonicalPath, config.inputEdges.getCanonicalPath,
+    config.inputMeta.getCanonicalPath)
+  val dataInput = BinaryInputParser.parse(parserInput)
   
   log.debug("Creating factor graph...")
   val graphContext = GraphContext.create(dataInput)
